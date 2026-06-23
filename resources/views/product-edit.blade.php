@@ -215,43 +215,7 @@
                 </div>
 
                 <!-- Sección de imágenes -->
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Imágenes del Producto</h5>
-                            <button type="button" class="btn btn-primary btn-sm" id="btnAgregarImagenes">
-                                <i class="bi bi-plus-circle"></i> Agregar Imágenes
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <!-- Drop zone para subir imágenes -->
-                        <div class="dropzone-wrapper mb-3" id="dropzoneWrapper">
-                            <div class="dropzone-area" id="dropzoneArea">
-                                <div class="text-center">
-                                    <i class="bi bi-cloud-upload" style="font-size: 48px;"></i>
-                                    <h5>Arrastra y suelta imágenes aquí</h5>
-                                    <p class="text-muted">o haz clic para seleccionar archivos</p>
-                                    <p class="text-muted small">Formatos: JPG, PNG, GIF, WebP (max 5MB)</p>
-                                    <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Galería de imágenes -->
-                        <div id="galeriaImagenes" class="row g-3">
-                            <!-- Aquí se cargarán las imágenes vía JavaScript -->
-                        </div>
-
-                        <!-- Barra de progreso -->
-                        <div id="progressBar" style="display: none;" class="mt-3">
-                            <div class="progress">
-                                <div id="progressBarInner" class="progress-bar progress-bar-striped progress-bar-animated"
-                                     role="progressbar" style="width: 0%">0%</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="text-end mb-3">
                     <button type="submit" class="btn btn-success w-sm">Modificar</button>
@@ -337,6 +301,43 @@
             </div>
         </div>
     </form>
+    <div class="card mt-3">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Imágenes del Producto</h5>
+                <button type="button" class="btn btn-primary btn-sm" id="btnAgregarImagenes">
+                    <i class="bi bi-plus-circle"></i> Agregar Imágenes
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Drop zone para subir imágenes -->
+            <div class="dropzone-wrapper mb-3" id="dropzoneWrapper">
+                <div class="dropzone-area" id="dropzoneArea">
+                    <div class="text-center">
+                        <i class="bi bi-cloud-upload" style="font-size: 48px;"></i>
+                        <h5>Arrastra y suelta imágenes aquí</h5>
+                        <p class="text-muted">o haz clic para seleccionar archivos</p>
+                        <p class="text-muted small">Formatos: JPG, PNG, GIF, WebP (max 5MB)</p>
+                        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Galería de imágenes -->
+            <div id="galeriaImagenes" class="row g-3">
+                <!-- Aquí se cargarán las imágenes vía JavaScript -->
+            </div>
+
+            <!-- Barra de progreso -->
+            <div id="progressBar" style="display: none;" class="mt-3">
+                <div class="progress">
+                    <div id="progressBarInner" class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar" style="width: 0%">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('scripts')
