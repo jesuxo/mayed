@@ -397,6 +397,52 @@
                 fileInput.click();
             });
 
+            // ============================================
+            // EVENT DELEGATION - Los eventos se mantienen
+            // incluso después de recargar la galería
+            // ============================================
+
+            // Evento para establecer como principal
+            $(document).on('click', '.set-principal', function() {
+                const id = $(this).data('id');
+                setPrincipal(id);
+            });
+
+            // Evento para establecer como thumbnail
+            $(document).on('click', '.set-thumbnail', function() {
+                const id = $(this).data('id');
+                setThumbnail(id);
+            });
+
+            // Evento para establecer como icono
+            $(document).on('click', '.set-icono', function() {
+                const id = $(this).data('id');
+                setIcono(id);
+            });
+
+            // Evento para eliminar imagen
+            $(document).on('click', '.eliminar-imagen', function() {
+                const id = $(this).data('id');
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: "Esta acción no se puede deshacer",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        eliminarImagen(id);
+                    }
+                });
+            });
+
+            // ============================================
+            // FUNCIONES
+            // ============================================
+
             function cargarImagenes() {
                 $.ajax({
                     url: urlBase + '/' + codprod,
@@ -438,18 +484,59 @@
                     if (esPrincipal) badges += '<span class="badge bg-success me-1">Principal</span>';
                     if (esThumbnail) badges += '<span class="badge bg-info me-1">Thumbnail</span>';
                     if (esIcono) badges += '<span class="badge bg-warning me-1">Icono</span>';
-                    if (imagen.tipo === 'secundaria') badges += '<span class="badge bg-secondary me-1">Secundaria</span>';
+                    if (imagen.tipo === 'secundaria' && !esPrincipal && !esThumbnail && !esIcono) {
+                        badges += '<span class="badge bg-secondary me-1">Secundaria</span>';
+                    }
+
+                    // Construir botones de acciones
+                    let botones = '';
+
+                    // Botón principal (si no es principal)
+                    if (!esPrincipal) {
+                        botones += `<button class="btn btn-sm btn-success set-principal" data-id="${imagen.id}" title="Establecer como principal">
+                        <i class="bi bi-star"></i>
+                    </button>`;
+                    } else {
+                        botones += `<button class="btn btn-sm btn-outline-success" disabled title="Ya es principal">
+                        <i class="bi bi-star-fill"></i>
+                    </button>`;
+                    }
+
+                    // Botón thumbnail (si no es principal y no es thumbnail)
+                    if (!esPrincipal && !esThumbnail) {
+                        botones += `<button class="btn btn-sm btn-info set-thumbnail" data-id="${imagen.id}" title="Establecer como thumbnail">
+                        <i class="bi bi-image"></i>
+                    </button>`;
+                    } else if (esThumbnail) {
+                        botones += `<button class="btn btn-sm btn-outline-info" disabled title="Ya es thumbnail">
+                        <i class="bi bi-image-fill"></i>
+                    </button>`;
+                    }
+
+                    // Botón icono (si no es principal y no es icono)
+                    if (!esPrincipal && !esIcono) {
+                        botones += `<button class="btn btn-sm btn-warning set-icono" data-id="${imagen.id}" title="Establecer como icono">
+                        <i class="bi bi-square"></i>
+                    </button>`;
+                    } else if (esIcono) {
+                        botones += `<button class="btn btn-sm btn-outline-warning" disabled title="Ya es icono">
+                        <i class="bi bi-square-fill"></i>
+                    </button>`;
+                    }
+
+                    // Botón eliminar (siempre visible)
+                    botones += `<button class="btn btn-sm btn-danger eliminar-imagen" data-id="${imagen.id}" title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>`;
 
                     const card = `
                     <div class="col-md-3 col-sm-4 col-6 galeria-imagen">
                         <div class="imagen-card">
-                            <img src="/${imagen.ruta}" alt="${imagen.nombre_original}" loading="lazy">
+                            <img src="/${imagen.ruta}" alt="${imagen.nombre_original}" loading="lazy"
+                                 onerror="this.src='{{ asset('images/no-image.png') }}'">
                             ${badges ? `<div class="badge-tipo">${badges}</div>` : ''}
                             <div class="acciones">
-                                ${!esPrincipal ? `<button class="btn btn-sm btn-success set-principal" data-id="${imagen.id}" title="Establecer como principal"><i class="bi bi-star"></i></button>` : ''}
-                                ${!esThumbnail && imagen.tipo !== 'principal' ? `<button class="btn btn-sm btn-info set-thumbnail" data-id="${imagen.id}" title="Establecer como thumbnail"><i class="bi bi-image"></i></button>` : ''}
-                                ${!esIcono && imagen.tipo !== 'principal' ? `<button class="btn btn-sm btn-warning set-icono" data-id="${imagen.id}" title="Establecer como icono"><i class="bi bi-square"></i></button>` : ''}
-                                <button class="btn btn-sm btn-danger eliminar-imagen" data-id="${imagen.id}" title="Eliminar"><i class="bi bi-trash"></i></button>
+                                ${botones}
                             </div>
                             ${imagen.orden !== undefined ? `<small class="text-muted d-block text-center">Orden: ${imagen.orden}</small>` : ''}
                         </div>
@@ -458,48 +545,40 @@
                     galeria.append(card);
                 });
 
-                // Eventos para las acciones
-                $('.set-principal').on('click', function() {
-                    const id = $(this).data('id');
-                    setPrincipal(id);
-                });
+                // Actualizar el contador de imágenes
+                const totalImagenes = data.imagenes.length;
+                const totalActivas = data.imagenes.filter(img => img.activo === 1).length;
 
-                $('.set-thumbnail').on('click', function() {
-                    const id = $(this).data('id');
-                    setThumbnail(id);
-                });
-
-                $('.set-icono').on('click', function() {
-                    const id = $(this).data('id');
-                    setIcono(id);
-                });
-
-                $('.eliminar-imagen').on('click', function() {
-                    const id = $(this).data('id');
-                    Swal.fire({
-                        title: '¿Estás seguro?',
-                        text: "Esta acción no se puede deshacer",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Sí, eliminar',
-                        cancelButtonText: 'Cancelar'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            eliminarImagen(id);
-                        }
-                    });
-                });
+                // Mostrar contador en el header
+                const headerTitle = $('.card-header h5');
+                if (headerTitle.length) {
+                    headerTitle.text(`Imágenes del Producto (${totalActivas})`);
+                }
             }
 
             function subirImagenes(files) {
+                // Validar cantidad de archivos
+                if (files.length > 10) {
+                    mostrarError('Solo puedes subir máximo 10 imágenes a la vez');
+                    return;
+                }
+
                 const formData = new FormData();
                 formData.append('codprod', codprod);
 
                 $.each(files, function(index, file) {
+                    // Validar tamaño (5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        mostrarError(`El archivo ${file.name} excede el tamaño máximo de 5MB`);
+                        return;
+                    }
                     formData.append('imagenes[]', file);
                 });
+
+                // Si no hay archivos válidos, salir
+                if (formData.getAll('imagenes[]').length === 0) {
+                    return;
+                }
 
                 progressBar.show();
                 progressBarInner.css('width', '0%');
@@ -538,7 +617,8 @@
                                 icon: 'success',
                                 title: '¡Éxito!',
                                 text: response.message,
-                                timer: 2000
+                                timer: 2000,
+                                showConfirmButton: false
                             });
 
                             cargarImagenes();
@@ -564,6 +644,16 @@
             }
 
             function setPrincipal(id) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Actualizando...',
+                    text: 'Estableciendo imagen como principal',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 $.ajax({
                     url: urlBase + '/' + id + '/set-principal',
                     type: 'POST',
@@ -571,24 +661,41 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function(response) {
+                        Swal.close();
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
                                 title: '¡Éxito!',
                                 text: response.message,
-                                timer: 1500
+                                timer: 1500,
+                                showConfirmButton: false
                             });
                             cargarImagenes();
                         }
                     },
                     error: function(xhr) {
+                        Swal.close();
                         console.error('Error:', xhr);
-                        mostrarError('Error al establecer como principal');
+                        let mensaje = 'Error al establecer como principal';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            mensaje = xhr.responseJSON.error;
+                        }
+                        mostrarError(mensaje);
                     }
                 });
             }
 
             function setThumbnail(id) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Actualizando...',
+                    text: 'Estableciendo imagen como thumbnail',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 $.ajax({
                     url: urlBase + '/' + id + '/set-thumbnail',
                     type: 'POST',
@@ -596,28 +703,41 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function(response) {
+                        Swal.close();
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
                                 title: '¡Éxito!',
                                 text: response.message,
-                                timer: 1500
+                                timer: 1500,
+                                showConfirmButton: false
                             });
                             cargarImagenes();
                         }
                     },
                     error: function(xhr) {
+                        Swal.close();
                         console.error('Error:', xhr);
+                        let mensaje = 'Error al establecer como thumbnail';
                         if (xhr.responseJSON && xhr.responseJSON.error) {
-                            mostrarError(xhr.responseJSON.error);
-                        } else {
-                            mostrarError('Error al establecer como thumbnail');
+                            mensaje = xhr.responseJSON.error;
                         }
+                        mostrarError(mensaje);
                     }
                 });
             }
 
             function setIcono(id) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Actualizando...',
+                    text: 'Estableciendo imagen como icono',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 $.ajax({
                     url: urlBase + '/' + id + '/set-icono',
                     type: 'POST',
@@ -625,28 +745,41 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function(response) {
+                        Swal.close();
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
                                 title: '¡Éxito!',
                                 text: response.message,
-                                timer: 1500
+                                timer: 1500,
+                                showConfirmButton: false
                             });
                             cargarImagenes();
                         }
                     },
                     error: function(xhr) {
+                        Swal.close();
                         console.error('Error:', xhr);
+                        let mensaje = 'Error al establecer como icono';
                         if (xhr.responseJSON && xhr.responseJSON.error) {
-                            mostrarError(xhr.responseJSON.error);
-                        } else {
-                            mostrarError('Error al establecer como icono');
+                            mensaje = xhr.responseJSON.error;
                         }
+                        mostrarError(mensaje);
                     }
                 });
             }
 
             function eliminarImagen(id) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Eliminando...',
+                    text: 'Por favor espera',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 $.ajax({
                     url: urlBase + '/' + id,
                     type: 'DELETE',
@@ -654,19 +787,26 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function(response) {
+                        Swal.close();
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Eliminado',
                                 text: response.message,
-                                timer: 1500
+                                timer: 1500,
+                                showConfirmButton: false
                             });
                             cargarImagenes();
                         }
                     },
                     error: function(xhr) {
+                        Swal.close();
                         console.error('Error:', xhr);
-                        mostrarError('Error al eliminar la imagen');
+                        let mensaje = 'Error al eliminar la imagen';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            mensaje = xhr.responseJSON.error;
+                        }
+                        mostrarError(mensaje);
                     }
                 });
             }
@@ -676,7 +816,8 @@
                     icon: 'error',
                     title: 'Error',
                     text: mensaje,
-                    timer: 3000
+                    timer: 3000,
+                    showConfirmButton: true
                 });
             }
         });
