@@ -112,9 +112,7 @@
 
 
             <div class="card" style="background: #e1f7e6;">
-                <div class="card-header" style="background: #c1e0cd;">
-                    <h5 class="mb-0">Registrar Mantenimiento</h5>
-                </div>
+
                 <div class="card-body">
                     <ul class="nav nav-tabs mb-3" id="paymentTabs" role="tablist">
                         <li class="nav-item" role="presentation">

@@ -887,7 +887,6 @@ class HomeController extends Controller
 
     public function index(Request $request)
     {
-
         $comercialid = session('comercialid');
         if(!$comercialid) {
             session(['comercialid' => 1]);
