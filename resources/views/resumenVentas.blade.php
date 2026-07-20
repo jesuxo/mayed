@@ -509,7 +509,17 @@
                                     </thead>
                                     <tbody>
                                     @php
-                                        $maxVenta = $vendedoresDestacados[0]['total_venta'] ?? 1;
+                                        // Calcular el máximo de venta, pero si es 0, usar 1 para evitar división por cero
+                                       $maxVenta = 0;
+                                       foreach($vendedoresDestacados as $vendedor) {
+                                           if($vendedor['total_venta'] > $maxVenta) {
+                                               $maxVenta = $vendedor['total_venta'];
+                                           }
+                                       }
+                                       // Si el máximo es 0, establecerlo a 1 para evitar división por cero
+                                       if($maxVenta == 0) {
+                                           $maxVenta = 1;
+                                       }
                                     @endphp
                                     @foreach($vendedoresDestacados as $index => $vendedor)
                                         @php
