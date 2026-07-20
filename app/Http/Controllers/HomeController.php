@@ -1054,7 +1054,7 @@ class HomeController extends Controller
             // =============================================
             if(in_array($venta->CodVend, $vendedoresDestacadosIds)) {
                 if(isset($vendedoresDestacados[$venta->CodVend])) {
-                    $vendedoresDestacados[$venta->CodVend]['nombre']         = $venta->vendedor->descrip ?? $cobranza->CodVend;
+                    $vendedoresDestacados[$venta->CodVend]['nombre']         = $venta->vendedor->descrip ?? $venta->CodVend;
                     $vendedoresDestacados[$venta->CodVend]['venta_contado'] += floatval($venta->contado);
                     $vendedoresDestacados[$venta->CodVend]['venta_credito'] += floatval($venta->credito);
                     $vendedoresDestacados[$venta->CodVend]['total_venta']   += floatval($venta->contado) + floatval($venta->credito);
