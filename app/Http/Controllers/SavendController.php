@@ -22,7 +22,7 @@ class SavendController extends Controller
         $sucursal   = Sasucursal::find($sucursalid);
         $comercialid  = $sucursal->fk_comercial;
 
-        $vendedores  = Savend::where('comercial',$comercialid)->with('user')->orderBy('codvend','desc')->get();
+        $vendedores  = Savend::where('comercial',$comercialid)->with('user')->orderBy('CodVend','desc')->get();
         return response()->json(['success'=>'success', 'vendedores' => $vendedores], 200);
     }
 
@@ -38,7 +38,7 @@ class SavendController extends Controller
         $newVend->fill($request->all());
         $newVend->descrip   = $request->sellerName;
         $newVend->telef     = (isset($request->phone))? $request->phone : '';
-        $newVend->id3 = $request->codvend;
+        $newVend->id3 = $request->CodVend;
         $newVend->comercial = $comercialid;
         $newVend->save();
 
@@ -55,7 +55,7 @@ class SavendController extends Controller
         foreach ($all as $item){
             $aux = [
                 "id"            => "$item->id",
-                "codvend"       => "$item->codvend",
+                "CodVend"       => "$item->CodVend",
                 "sellerName"    => "$item->descrip",
                 "email"         => "$item->email",
                 "phone"         => "$item->telef",

@@ -10,7 +10,7 @@ class Savend extends Model
     use HasFactory;
 
     protected $table    = 'savend';
-    protected $fillable = ['codvend', 'descrip', 'email', 'telef', 'destacado'];
+    protected $fillable = ['CodVend', 'descrip', 'email', 'telef', 'destacado'];
 
     public function user()
     {
@@ -19,7 +19,7 @@ class Savend extends Model
 
     public function factura()
     {
-        return $this->belongsTo(Safact::class, 'codvend', 'codvend');
+        return $this->belongsTo(Safact::class, 'CodVend', 'CodVend');
     }
 
 }

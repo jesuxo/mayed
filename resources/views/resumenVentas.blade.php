@@ -533,10 +533,8 @@
                                             <td class="text-start">
                                                 <div class="d-flex align-items-center gap-1">
                                                     <span class="fw-bold">{{ $medalla }}</span>
-                                                    <span class="fw-medium">{{ $vendedor['nombre'] }}</span>
-                                                    <span class="badge bg-primary rounded-pill ms-1" style="font-size: 0.6rem;">
-                                            {{ number_format($vendedor['total_venta'], 2, ',', '.') }}
-                                        </span>
+                                                    <span class="fw-medium">{{ $vendedor['descrip'] }}</span>
+
                                                 </div>
                                                 <div class="progress" style="height: 3px; margin-top: 2px;">
                                                     <div class="progress-bar bg-success"

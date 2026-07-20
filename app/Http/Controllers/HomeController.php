@@ -116,7 +116,7 @@ class HomeController extends Controller
                 DB::raw('(((b.costodoriginal - b.preciod) * f.signo) * b.cantidad) as resta'),
                 DB::raw('(((b.costodoriginal - b.preciod)/b.costodoriginal) * f.signo * b.cantidad) as utilidad'),
                 DB::raw('((b.costodoriginal) * f.signo * b.cantidad) as basesuma'),
-                'g.codvend',
+                'g.CodVend',
                 'g.descrip as vendedor',
                 DB::raw('(b.costodoriginal * b.cantidad * f.Signo) AS venta')
             ])
@@ -145,7 +145,7 @@ class HomeController extends Controller
                 }
             })
             ->join('savend as g', function($join) use ($comercialid) {
-                $join->on('g.codvend', '=', 'f.codvend')
+                $join->on('g.CodVend', '=', 'f.CodVend')
                     ->where('g.comercial', '=', $comercialid);
             })
             ->whereIn('f.tipofac', ['A', 'B'])
@@ -174,14 +174,14 @@ class HomeController extends Controller
                     $sucursales[$venta->fk_sucursal] = $venta->descrip;
                 }
 
-                if(!isset($vendedores[$venta->codvend])){
-                    $vendedores[$venta->codvend]['descrip'] = $venta->vendedor;
-                    $vendedores[$venta->codvend]['cant']    = 0;
-                    $vendedores[$venta->codvend]['venta']   = 0;
+                if(!isset($vendedores[$venta->CodVend])){
+                    $vendedores[$venta->CodVend]['descrip'] = $venta->vendedor;
+                    $vendedores[$venta->CodVend]['cant']    = 0;
+                    $vendedores[$venta->CodVend]['venta']   = 0;
                 }
 
-                $vendedores[$venta->codvend]['cant']    += $venta->cant;
-                $vendedores[$venta->codvend]['venta']   += $venta->venta;
+                $vendedores[$venta->CodVend]['cant']    += $venta->cant;
+                $vendedores[$venta->CodVend]['venta']   += $venta->venta;
 
                 if(!isset($vsucursal[$venta->fk_sucursal])){
                     $vsucursal[$venta->fk_sucursal]['descrip'] = $venta->descrip;
@@ -453,7 +453,7 @@ class HomeController extends Controller
 
 
         $cobranzas = Saacxc::selectRaw("(cancele - (dolares*tasadolar)) as cancele, codusua, (cancelt - (dolar_tranf*tasadolar)) as cancelt, dolar_tranf as transf, dolares, codclie,
-          date_format(FechaT, '%d/%m/%Y') as fecha, codvend, Document, nrounico, euros,cancelausd, codesta,
+          date_format(FechaT, '%d/%m/%Y') as fecha, CodVend, Document, nrounico, euros,cancelausd, codesta,
         tasadolar, pesos, peso_tranf, tasapeso, numerod, tipocxc, montodolares, fk_sucursal, CodClie ")
             ->with([ 'cliente',
                 'sucursal.comercial:id',
@@ -973,13 +973,13 @@ class HomeController extends Controller
 
         // Inicializar array para vendedores destacados
         $vendedoresDestacados = [];
-        foreach($vendedoresDestacadosIds as $codvend) {
-            $vendedoresDestacados[$codvend] = [
-                'CodVend' => $codvend,
-                'nombre' => '',
-                'venta_contado' => 0,
-                'venta_credito' => 0,
-                'total_venta' => 0,
+        foreach($vendedoresDestacadosIds as $CodVend) {
+            $vendedoresDestacados[$CodVend] = [
+                'CodVend'        => $CodVend,
+                'nombre'         => '',
+                'venta_contado'  => 0,
+                'venta_credito'  => 0,
+                'total_venta'    => 0,
                 'total_cobranza' => 0,
             ];
         }
@@ -1054,10 +1054,10 @@ class HomeController extends Controller
             // =============================================
             if(in_array($venta->CodVend, $vendedoresDestacadosIds)) {
                 if(isset($vendedoresDestacados[$venta->CodVend])) {
-                    $vendedoresDestacados[$venta->CodVend]['nombre'] = $venta->vendedor->descrip ?? '';
+                    $vendedoresDestacados[$venta->CodVend]['nombre']         = $venta->vendedor->descrip ?? '';
                     $vendedoresDestacados[$venta->CodVend]['venta_contado'] += floatval($venta->contado);
                     $vendedoresDestacados[$venta->CodVend]['venta_credito'] += floatval($venta->credito);
-                    $vendedoresDestacados[$venta->CodVend]['total_venta'] += floatval($venta->contado) + floatval($venta->credito);
+                    $vendedoresDestacados[$venta->CodVend]['total_venta']   += floatval($venta->contado) + floatval($venta->credito);
                 }
             }
 
