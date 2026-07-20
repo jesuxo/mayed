@@ -11,6 +11,7 @@ use App\Models\Saipavta;
 use App\Models\Saitemfac;
 use App\Models\Saprod;
 use App\Models\Sasucursal;
+use App\Models\Savend;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -974,9 +975,10 @@ class HomeController extends Controller
         // Inicializar array para vendedores destacados
         $vendedoresDestacados = [];
         foreach($vendedoresDestacadosIds as $CodVend) {
+            $vendedor = Savend::selectRaw('descrip')->where(['CodVend'=> $CodVend, 'comercial'=>$comercialid])->first();
             $vendedoresDestacados[$CodVend] = [
                 'CodVend'        => $CodVend,
-                'nombre'         => '',
+                'nombre'         => $vendedor->descrip,
                 'venta_contado'  => 0,
                 'venta_credito'  => 0,
                 'total_venta'    => 0,
@@ -1054,8 +1056,7 @@ class HomeController extends Controller
             // =============================================
             if(in_array($venta->CodVend, $vendedoresDestacadosIds)) {
                 if(isset($vendedoresDestacados[$venta->CodVend])) {
-                    $vendedoresDestacados[$venta->CodVend]['nombre']         = $venta->vendedor->descrip ?? $venta->CodVend;
-                    $vendedoresDestacados[$venta->CodVend]['venta_contado'] += floatval($venta->contado);
+                     $vendedoresDestacados[$venta->CodVend]['venta_contado'] += floatval($venta->contado);
                     $vendedoresDestacados[$venta->CodVend]['venta_credito'] += floatval($venta->credito);
                     $vendedoresDestacados[$venta->CodVend]['total_venta']   += floatval($venta->contado) + floatval($venta->credito);
                 }
@@ -1131,8 +1132,7 @@ class HomeController extends Controller
             // =============================================
             if(in_array($cobranza->CodVend, $vendedoresDestacadosIds)) {
                 if(isset($vendedoresDestacados[$cobranza->CodVend])) {
-                    $vendedoresDestacados[$cobranza->CodVend]['nombre'] = $cobranza->vendedor->descrip ?? $cobranza->CodVend;
-                    $vendedoresDestacados[$cobranza->CodVend]['total_cobranza'] += floatval($cobranza->cobranza);
+                     $vendedoresDestacados[$cobranza->CodVend]['total_cobranza'] += floatval($cobranza->cobranza);
                 }
             }
 
