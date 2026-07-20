@@ -533,7 +533,7 @@
                                             <td class="text-start">
                                                 <div class="d-flex align-items-center gap-1">
                                                     <span class="fw-bold">{{ $medalla }}</span>
-                                                    <span class="fw-medium">{{ $vendedor['descrip'] }}</span>
+                                                    <span class="fw-medium">{{ $vendedor['nombre'] }}</span>
 
                                                 </div>
                                                 <div class="progress" style="height: 3px; margin-top: 2px;">
