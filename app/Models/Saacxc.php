@@ -27,6 +27,10 @@ class Saacxc extends Model
         return $this->belongsTo(Sasucursal::class, 'fk_sucursal', 'id');
     }
 
+    public function vendedor  (){
+        return $this->belongsTo(Savend::class, 'CodVend', 'CodVend');
+    }
+
     public function cliente  (){
         return $this->belongsTo(Saclie::class, 'CodClie', 'codclie');
     }

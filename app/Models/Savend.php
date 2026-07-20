@@ -10,7 +10,7 @@ class Savend extends Model
     use HasFactory;
 
     protected $table    = 'savend';
-    protected $fillable = ['codvend', 'descrip', 'email', 'telef'];
+    protected $fillable = ['codvend', 'descrip', 'email', 'telef', 'destacado'];
 
     public function user()
     {
