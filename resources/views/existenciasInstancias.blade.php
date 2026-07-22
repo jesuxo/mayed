@@ -775,17 +775,25 @@
         });
 
         // Búsqueda en tiempo real dentro del modal
+        // Búsqueda en tiempo real dentro del modal
         $('#busquedaentredepositos').off('keyup').on('keyup', function() {
-            busqued = $(this).val();
-            $('#contentviewprodcodalte').html(`
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p class="mt-3 text-muted">Buscando: ${busqued}</p>
+            var busqueda = $(this).val();
+
+            // Llamar a la función de recarga del modal
+            if (typeof recargarModalConBusqueda === 'function') {
+                recargarModalConBusqueda(busqueda);
+            } else {
+                // Fallback: si la función no está definida, usar el método tradicional
+                $('#contentviewprodcodalte').html(`
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
                 </div>
-            `);
-            abrirmodalexistencias(codalte, busqued);
+                <p class="mt-3 text-muted">Buscando: ${busqueda}</p>
+            </div>
+        `);
+                abrirmodalexistencias(modalCodalte, busqueda);
+            }
         });
 
         function abrirmodalexistencias(codalte, busqueda) {

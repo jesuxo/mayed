@@ -1433,7 +1433,9 @@ class SaprodController extends Controller
             'depositosFiltrados',    // Depósitos filtrados
             'totalcost',
             'existdepstt',
-            'depositosSeleccionados'
+            'depositosSeleccionados',
+            'codalte',
+            'busqueda'
         ));
     }
 
