@@ -53,7 +53,7 @@
         border-left: 3px solid #0d6efd;
     }
     @media (min-width:1000px ) {
-        #searchModal{
+        #searchModal .modal-xl{
             min-width: 92% !important;
         }
     }
