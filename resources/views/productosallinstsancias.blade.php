@@ -6,6 +6,9 @@
         border-radius: 0;
         overflow: hidden;
         background: transparent;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
     .table-existencias-modal {
@@ -80,6 +83,9 @@
         font-size: 0.8rem;
         border-top: 2px solid #0056a7;
         color: #fff !important;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
     }
 
     /* Badges de cantidad */
@@ -161,6 +167,12 @@
     }
 
     /* Scroll personalizado */
+    .scroll-existencias-modal {
+        flex: 1;
+        overflow: auto;
+        min-height: 200px;
+    }
+
     .scroll-existencias-modal::-webkit-scrollbar {
         width: 5px;
         height: 5px;
@@ -189,6 +201,7 @@
         padding: 8px 12px;
         margin: 0 0 10px 0;
         border: 1px solid #e9ecef;
+        flex-shrink: 0;
     }
 
     .deposito-filter-modal .filter-label {
@@ -351,9 +364,7 @@
         margin-left: 6px;
     }
 
-    /* ========================================== */
-    /* DRAG AND DROP STYLES */
-    /* ========================================== */
+    /* Drag and Drop styles */
     .deposito-item.drag-over {
         border-color: #0072c5;
         background: #e6f3ff;
@@ -389,6 +400,15 @@
         border-top: 1px solid #e9ecef;
         margin-top: 6px;
         padding-top: 6px;
+        flex-shrink: 0;
+    }
+
+    /* Contenedor de la tabla */
+    .table-wrapper-modal {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
 
     /* Responsive */
@@ -448,10 +468,15 @@
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
+
+        .scroll-existencias-modal {
+            max-height: none !important;
+            overflow: visible !important;
+        }
     }
 </style>
 
-<div class="card-existencias-modal">
+<div class="card-existencias-modal" id="cardExistenciasModal">
     <!-- ========================================== -->
     <!-- FILTRO DE DEPÓSITOS CON REORDENAMIENTO -->
     <!-- ========================================== -->
@@ -509,110 +534,114 @@
         </div>
     @endif
 
-    <!-- Tabla -->
-    <div class="scroll-existencias-modal" style="max-height: 420px; overflow: auto;">
-        <table class="table-existencias-modal table table-borderless table-centered align-middle table-nowrap mb-0" id="tablaExistenciasModal">
-            <thead>
-            <tr>
-                <th width="5%" class="text-center">CÓD</th>
-                <th width="22%">PRODUCTO</th>
-                <th width="8%" class="text-center">REF</th>
-                @foreach($depositoValues as $indexDep => $descripdepo)
-                    <th width="12%" class="text-center">
-                            <span class="deposito-tooltip" title="{{ $descripdepo }}">
-                                {{ Str::limit($descripdepo, 10) }}
-                            </span>
-                    </th>
-                @endforeach
-                <th width="8%" class="text-center">UNDS</th>
-            </tr>
-            </thead>
-            <tbody>
-            @php
-                $tantos = 0;
-                $totalcost = 0;
-                $existdepstt = 0;
-                $arraycantdep = array_fill(0, count($depositoValues), 0);
-            @endphp
-
-            @forelse($productos as $index => $producto)
+    <!-- ========================================== -->
+    <!-- TABLA CON ALTURA DINÁMICA -->
+    <!-- ========================================== -->
+    <div class="table-wrapper-modal">
+        <div class="scroll-existencias-modal" id="scrollExistenciasModal">
+            <table class="table-existencias-modal table table-borderless table-centered align-middle table-nowrap mb-0" id="tablaExistenciasModal">
+                <thead>
+                <tr>
+                    <th width="5%" class="text-center">CÓD</th>
+                    <th width="22%">PRODUCTO</th>
+                    <th width="8%" class="text-center">REF</th>
+                    @foreach($depositoValues as $indexDep => $descripdepo)
+                        <th width="12%" class="text-center">
+                                <span class="deposito-tooltip" title="{{ $descripdepo }}">
+                                    {{ Str::limit($descripdepo, 10) }}
+                                </span>
+                        </th>
+                    @endforeach
+                    <th width="8%" class="text-center">UNDS</th>
+                </tr>
+                </thead>
+                <tbody>
                 @php
-                    $tantos++;
-                    $bgcolor = ($tantos % 2 == 0) ? '#ffffff' : '#f8f9fa';
-                    $existdeps = 0;
-                    $tieneStock = false;
+                    $tantos = 0;
+                    $totalcost = 0;
+                    $existdepstt = 0;
+                    $arraycantdep = array_fill(0, count($depositoValues), 0);
                 @endphp
 
-                <tr bgcolor="{{ $bgcolor }}" style="color:#2c3e50;">
-                    <td align="left" class="codigo-prod-modal">{{ $index }}</td>
-                    <td align="left" class="nombre-prod-modal">{{ $producto['descrip'] ?? '' }}</td>
-                    <td align="left" class="descrip2-prod-modal">
-                        {{ $producto['descrip2'] ?? '-' }}
-                    </td>
+                @forelse($productos as $index => $producto)
+                    @php
+                        $tantos++;
+                        $bgcolor = ($tantos % 2 == 0) ? '#ffffff' : '#f8f9fa';
+                        $existdeps = 0;
+                        $tieneStock = false;
+                    @endphp
 
-                    @foreach($depositoKeys as $depIndex => $depKey)
-                        @php
-                            $cantidad = $existenciasFiltradas[$index][$depKey] ?? 0;
-                            if($cantidad > 0) {
-                                $arraycantdep[$depIndex] += $cantidad;
-                                $existdeps += $cantidad;
-                                $existdepstt += $cantidad;
-                                $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
-                                $tieneStock = true;
-                            }
-                        @endphp
-                        <td align="center">
-                            @if($cantidad > 0)
-                                @php
-                                    $claseBadge = 'positivo';
-                                    if($cantidad >= 50) $claseBadge = 'muy-alto';
-                                    elseif($cantidad >= 20) $claseBadge = 'alto';
-                                @endphp
-                                <span class="badge-cantidad-modal {{ $claseBadge }}">
-                                        {{ number_format($cantidad, 0, ',', '.') }}
-                                    </span>
-                            @else
-                                <span class="celda-vacia-modal">-</span>
-                            @endif
+                    <tr bgcolor="{{ $bgcolor }}" style="color:#2c3e50;">
+                        <td align="left" class="codigo-prod-modal">{{ $index }}</td>
+                        <td align="left" class="nombre-prod-modal">{{ $producto['descrip'] ?? '' }}</td>
+                        <td align="left" class="descrip2-prod-modal">
+                            {{ $producto['descrip2'] ?? '-' }}
                         </td>
-                    @endforeach
 
-                    <td align="center" class="total-unds-modal">
-                        {{ number_format($existdeps, 0, ',', '.') }}
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="{{ count($depositoValues) + 3 }}" align="center" style="padding: 30px 0;">
-                        <i class="bi bi-inbox" style="font-size: 36px; color: #ccc;"></i>
-                        <h6 style="color: #6c757d; margin-top: 8px;">No hay productos con existencias</h6>
-                        <p style="color: #999; font-size: 0.8rem;">No se encontraron productos en esta categoría</p>
-                    </td>
-                </tr>
-            @endforelse
+                        @foreach($depositoKeys as $depIndex => $depKey)
+                            @php
+                                $cantidad = $existenciasFiltradas[$index][$depKey] ?? 0;
+                                if($cantidad > 0) {
+                                    $arraycantdep[$depIndex] += $cantidad;
+                                    $existdeps += $cantidad;
+                                    $existdepstt += $cantidad;
+                                    $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
+                                    $tieneStock = true;
+                                }
+                            @endphp
+                            <td align="center">
+                                @if($cantidad > 0)
+                                    @php
+                                        $claseBadge = 'positivo';
+                                        if($cantidad >= 50) $claseBadge = 'muy-alto';
+                                        elseif($cantidad >= 20) $claseBadge = 'alto';
+                                    @endphp
+                                    <span class="badge-cantidad-modal {{ $claseBadge }}">
+                                            {{ number_format($cantidad, 0, ',', '.') }}
+                                        </span>
+                                @else
+                                    <span class="celda-vacia-modal">-</span>
+                                @endif
+                            </td>
+                        @endforeach
 
-            @if(count($productos) > 0)
-                <!-- FILA DE TOTALES -->
-                <tr class="fila-total">
-                    <td colspan="3" align="right">
-                        <strong>TOTALES</strong>
-                    </td>
-                    @foreach($arraycantdep as $totalDep)
+                        <td align="center" class="total-unds-modal">
+                            {{ number_format($existdeps, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="{{ count($depositoValues) + 3 }}" align="center" style="padding: 30px 0;">
+                            <i class="bi bi-inbox" style="font-size: 36px; color: #ccc;"></i>
+                            <h6 style="color: #6c757d; margin-top: 8px;">No hay productos con existencias</h6>
+                            <p style="color: #999; font-size: 0.8rem;">No se encontraron productos en esta categoría</p>
+                        </td>
+                    </tr>
+                @endforelse
+
+                @if(count($productos) > 0)
+                    <!-- FILA DE TOTALES (sticky bottom) -->
+                    <tr class="fila-total">
+                        <td colspan="3" align="right">
+                            <strong>TOTALES</strong>
+                        </td>
+                        @foreach($arraycantdep as $totalDep)
+                            <td align="center" class="total-unds-footer-modal">
+                                @if($totalDep > 0)
+                                    {{ number_format($totalDep, 0, ',', '.') }}
+                                @else
+                                    <span style="color: rgba(255,255,255,0.4);">-</span>
+                                @endif
+                            </td>
+                        @endforeach
                         <td align="center" class="total-unds-footer-modal">
-                            @if($totalDep > 0)
-                                {{ number_format($totalDep, 0, ',', '.') }}
-                            @else
-                                <span style="color: rgba(255,255,255,0.4);">-</span>
-                            @endif
+                            <strong>{{ $existdepstt+0 }}</strong>
                         </td>
-                    @endforeach
-                    <td align="center" class="total-unds-footer-modal">
-                        <strong>{{ $existdepstt+0 }}</strong>
-                    </td>
-                </tr>
-            @endif
-            </tbody>
-        </table>
+                    </tr>
+                @endif
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Barra de información -->
@@ -631,18 +660,82 @@
 
 <script>
     // ==========================================
+    // AJUSTAR ALTURA DEL SCROLL DINÁMICAMENTE
+    // ==========================================
+
+    function ajustarAlturaScroll() {
+        var scrollContainer = document.getElementById('scrollExistenciasModal');
+        if (!scrollContainer) return;
+
+        // Obtener el contenedor principal del modal
+        var modalContent = document.getElementById('contentviewprodcodalte');
+        if (!modalContent) return;
+
+        // Obtener el card que contiene todo
+        var card = document.getElementById('cardExistenciasModal');
+        if (!card) return;
+
+        // Calcular altura disponible
+        var modalBody = modalContent.closest('.modal-body');
+        if (!modalBody) {
+            // Si no está dentro de un modal-body, usar la ventana
+            var windowHeight = window.innerHeight;
+            var cardRect = card.getBoundingClientRect();
+            var topOffset = cardRect.top;
+            var bottomOffset = 60; // Margen inferior
+
+            // Obtener altura de los elementos fijos
+            var filterHeight = document.querySelector('.deposito-filter-modal')?.offsetHeight || 0;
+            var infoBarHeight = document.querySelector('.info-bar-modal')?.offsetHeight || 0;
+            var headerHeight = document.querySelector('.modal-header')?.offsetHeight || 60;
+
+            // Altura disponible = ventana - offset superior - elementos fijos - margen
+            var availableHeight = windowHeight - topOffset - headerHeight - filterHeight - infoBarHeight - bottomOffset;
+
+            // Aplicar altura mínima
+            if (availableHeight > 200) {
+                scrollContainer.style.maxHeight = availableHeight + 'px';
+                scrollContainer.style.height = availableHeight + 'px';
+            } else {
+                scrollContainer.style.maxHeight = '300px';
+                scrollContainer.style.height = '300px';
+            }
+
+            return;
+        }
+
+        // Obtener altura del modal-body
+        var bodyHeight = modalBody.clientHeight;
+
+        // Obtener altura de elementos fijos dentro del card
+        var filterHeight = document.querySelector('.deposito-filter-modal')?.offsetHeight || 0;
+        var infoBarHeight = document.querySelector('.info-bar-modal')?.offsetHeight || 0;
+        var padding = 30; // Padding adicional
+
+        // Calcular altura para el scroll
+        var scrollHeight = bodyHeight - filterHeight - infoBarHeight - padding;
+
+        // Aplicar altura mínima
+        if (scrollHeight > 150) {
+            scrollContainer.style.maxHeight = scrollHeight + 'px';
+            scrollContainer.style.height = scrollHeight + 'px';
+        } else {
+            scrollContainer.style.maxHeight = '250px';
+            scrollContainer.style.height = '250px';
+        }
+    }
+
+    // ==========================================
     // DRAG AND DROP PARA REORDENAR DEPÓSITOS
     // ==========================================
 
     var draggedItem = null;
     var dragOverItem = null;
 
-    // Inicializar eventos de drag and drop
     function inicializarDragDrop() {
         var items = document.querySelectorAll('.deposito-item');
 
         items.forEach(function(item) {
-            // Remover eventos previos para evitar duplicados
             item.removeEventListener('dragstart', handleDragStart);
             item.removeEventListener('dragend', handleDragEnd);
             item.removeEventListener('dragover', handleDragOver);
@@ -650,7 +743,6 @@
             item.removeEventListener('dragleave', handleDragLeave);
             item.removeEventListener('drop', handleDrop);
 
-            // Agregar eventos
             item.addEventListener('dragstart', handleDragStart);
             item.addEventListener('dragend', handleDragEnd);
             item.addEventListener('dragover', handleDragOver);
@@ -698,11 +790,9 @@
         this.classList.remove('drag-over');
 
         if (draggedItem !== this) {
-            // Obtener el contenedor
             var container = document.getElementById('depositosContainer');
             var items = container.querySelectorAll('.deposito-item');
 
-            // Determinar posición de drop
             var draggedIndex = Array.from(items).indexOf(draggedItem);
             var targetIndex = Array.from(items).indexOf(this);
 
@@ -712,7 +802,6 @@
                 this.parentNode.insertBefore(draggedItem, this);
             }
 
-            // Actualizar números de orden
             actualizarNumerosOrden();
         }
 
@@ -720,7 +809,6 @@
         return false;
     }
 
-    // Actualizar números de orden visuales
     function actualizarNumerosOrden() {
         var items = document.querySelectorAll('.deposito-item');
         items.forEach(function(item, index) {
@@ -732,7 +820,6 @@
         });
     }
 
-    // Obtener orden actual de depósitos
     function getOrdenDepositos() {
         var items = document.querySelectorAll('.deposito-item');
         var orden = [];
@@ -745,25 +832,20 @@
         return orden;
     }
 
-    // Resetear orden original (por código)
     function resetearOrdenModal() {
         var container = document.getElementById('depositosContainer');
         var items = container.querySelectorAll('.deposito-item');
         var itemsArray = Array.from(items);
 
-        // Ordenar por key (código)
         itemsArray.sort(function(a, b) {
             return a.dataset.key.localeCompare(b.dataset.key);
         });
 
-        // Reinsertar en el orden correcto
         itemsArray.forEach(function(item) {
             container.appendChild(item);
         });
 
         actualizarNumerosOrden();
-
-        // Aplicar el filtro con el nuevo orden
         aplicarFiltroModal();
     }
 
@@ -859,6 +941,7 @@
                     content.innerHTML = response;
                     setTimeout(function() {
                         inicializarFiltroModal();
+                        ajustarAlturaScroll();
                     }, 100);
                 }
             },
@@ -922,6 +1005,7 @@
                     content.innerHTML = response;
                     setTimeout(function() {
                         inicializarFiltroModal();
+                        ajustarAlturaScroll();
                     }, 100);
                 }
             },
@@ -939,19 +1023,14 @@
     }
 
     function inicializarFiltroModal() {
-        // Checkboxes
         document.querySelectorAll('.deposito-checkbox-modal').forEach(function(cb) {
             cb.removeEventListener('change', actualizarContadorModal);
             cb.addEventListener('change', actualizarContadorModal);
         });
 
-        // Inicializar drag and drop
         inicializarDragDrop();
-
-        // Inicializar contador
         actualizarContadorModal();
 
-        // Tooltips
         if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -959,7 +1038,6 @@
             });
         }
 
-        // Resaltar filas con stock
         var rows = document.querySelectorAll('.table-existencias-modal tbody tr:not(.fila-total)');
         rows.forEach(function(row) {
             var celdas = row.querySelectorAll('td');
@@ -975,9 +1053,15 @@
                 row.style.borderLeft = '3px solid #28a745';
             }
         });
+
+        // Ajustar altura después de inicializar
+        setTimeout(ajustarAlturaScroll, 50);
     }
 
-    // Inicializar cuando el DOM esté listo
+    // ==========================================
+    // EVENTOS
+    // ==========================================
+
     document.addEventListener('DOMContentLoaded', function() {
         inicializarFiltroModal();
     });
@@ -986,7 +1070,13 @@
         $('#viewprodcodaltemodal').on('shown.bs.modal', function() {
             setTimeout(function() {
                 inicializarFiltroModal();
+                ajustarAlturaScroll();
             }, 300);
+        });
+
+        // Reajustar al redimensionar la ventana
+        $(window).on('resize', function() {
+            ajustarAlturaScroll();
         });
     });
 </script>
