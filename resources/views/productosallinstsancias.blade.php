@@ -444,7 +444,6 @@
                                 </th>
                             @endforeach
                             <th width="9%" class="text-center">UNDS</th>
-                            <th width="9%" class="text-end">COSTO</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -506,7 +505,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ count($depositoValues) + 4 }}" align="center" style="padding: 40px 0;">
+                                <td colspan="{{ count($depositoValues) + 3 }}" align="center" style="padding: 40px 0;">
                                     <i class="bi bi-inbox" style="font-size: 48px; color: #ccc;"></i>
                                     <h5 style="color: #6c757d; margin-top: 10px;">No hay productos con existencias</h5>
                                     <p style="color: #999; font-size: 0.85rem;">No se encontraron productos en esta categoría</p>
@@ -532,9 +531,7 @@
                                 <td align="center" class="total-unds-footer">
                                     <strong>{{ number_format($existdepstt, 0, ',', '.') }}</strong>
                                 </td>
-                                <td align="right" class="total-costo-footer">
-                                    $ {{ number_format($totalcost, 2, ',', '.') }}
-                                </td>
+
                             </tr>
                         @endif
                         </tbody>
