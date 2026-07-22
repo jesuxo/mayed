@@ -1373,7 +1373,7 @@ class SaprodController extends Controller
             }
 
             if(!isset($deposito[$producto->codubic])) {
-                $deposito[$producto->codubic] = str_replace("sara",'',$producto->deposito);
+                $deposito[$producto->codubic] = str_replace("SARA",'',$producto->deposito);
             }
 
             if(!isset($existencias[$producto->codprod])) {
