@@ -1295,79 +1295,119 @@ class SaprodController extends Controller
 
     public function viewprodinstsanciascodalte(Request $request)
     {
-        $comercial  = session('comercialid') ;
+        $comercial = session('comercialid');
         if(!$comercial) {
             session(['comercialid' => 1]);
             $comercial = 1;
         }
 
-        $codalte     = $request->codalte;
-        $busqueda    = $request->busqueda;
-        $len         = strlen($codalte);
+        $codalte  = $request->codalte;
+        $busqueda = $request->busqueda ?? '';
+        $len      = strlen($codalte);
 
-        $busqueda = str_replace("\"", "", $busqueda);
-        $busqueda = str_replace("'",  "", $busqueda);
-        $busqueda = str_replace("*", " ", $busqueda);
-        $vector = explode(" ", $busqueda);
+        // ==========================================
+        // CONSTRUIR BÚSQUEDA
+        // ==========================================
+        $cadena = '';
+        if(!empty($busqueda)) {
+            $busqueda = str_replace("\"", "", $busqueda);
+            $busqueda = str_replace("'",  "", $busqueda);
+            $busqueda = str_replace("*", " ", $busqueda);
+            $vector = explode(" ", $busqueda);
 
-        if ($vector ) {
-            $numerito = 0;
-            $cadena   = '';
-            foreach ($vector as $value) {
-                if ($numerito > 0) {
-                    $cadena  .= ' AND ';
+            if(!empty($vector)) {
+                $conditions = [];
+                foreach ($vector as $value) {
+                    if(trim($value) != '') {
+                        $conditions[] = "(a.codprod LIKE '%$value%' OR a.descrip LIKE '%$value%' OR a.refere LIKE '%$value%' OR a.marca LIKE '%$value%' OR a.descrip2 LIKE '%$value%')";
+                    }
                 }
-                $cadena  .= "(a.codprod like '%$value%' or a.descrip like '%$value%' or a.refere like '%$value%' or a.marca like '%$value%' or a.descrip2 like '%$value%')";
-                $numerito++;
+                if(!empty($conditions)) {
+                    $cadena = " AND (" . implode(' AND ', $conditions) . ") ";
+                }
             }
         }
 
-
-        if($cadena!='') $cadena = " and ($cadena) ";
-
+        // ==========================================
+        // CONSULTA PRINCIPAL
+        // ==========================================
         $sqlcostoinv = "SELECT a.preciodant, a.preciodpro, a.preciod, a.descrip, a.codprod, e.codubic, b.existen, e.descrip as deposito
-								from saprod a , saexis b, sasucursal c, sainsta d, sadepo e
-								where a.codprod    = b.codprod
-                                and b.fk_sucursal  = c.id
-								and b.codubic      = e.codubic
-                                and c.fk_comercial = $comercial
-								and a.comercial    = $comercial
-								and d.comercial    = $comercial
-								and e.comercial    = $comercial
-								$cadena
-								and d.codinst      = a.codinst
-                                and left(d.codalte,$len) = '$codalte'
-								and b.existen <> 0
-                                order by a.descrip
-								";
+                    FROM saprod a
+                    INNER JOIN saexis b ON a.codprod = b.codprod
+                    INNER JOIN sasucursal c ON b.fk_sucursal = c.id
+                    INNER JOIN sainsta d ON d.codinst = a.codinst
+                    INNER JOIN sadepo e ON b.codubic = e.codubic
+                    WHERE c.fk_comercial = $comercial
+                      AND a.comercial = $comercial
+                      AND d.comercial = $comercial
+                      AND e.comercial = $comercial
+                      AND LEFT(d.codalte, $len) = '$codalte'
+                      AND b.existen <> 0
+                      $cadena
+                    ORDER BY a.descrip";
 
         $listado = DB::select($sqlcostoinv);
 
-        $productos    = [];
-        $deposito     = [];
-        $existencias  = [];
+        // ==========================================
+        // PROCESAR DATOS
+        // ==========================================
+        $productos   = [];
+        $deposito    = [];
+        $existencias = [];
 
         foreach($listado as $producto){
+            // Agrupar por producto
+            if(!isset($productos[$producto->codprod])) {
+                $productos[$producto->codprod] = [
+                    'descrip'    => $producto->descrip,
+                    'preciodpro' => $producto->preciodpro,
+                    'preciod'    => $producto->preciod,
+                    'preciodant' => $producto->preciodant ?? 0,
+                ];
+            }
 
-            if(!isset($productos[$producto->codprod]))
-                $productos[$producto->codprod] = [];
-
-            $productos[$producto->codprod]['descrip']    = $producto->descrip;
-            $productos[$producto->codprod]['preciodpro'] = $producto->preciodpro;
-            $productos[$producto->codprod]['preciod']    = $producto->preciod;
-
-            if(!isset($deposito[$producto->codubic]))
+            // Registrar depósito
+            if(!isset($deposito[$producto->codubic])) {
                 $deposito[$producto->codubic] = $producto->deposito;
+            }
 
-            if(!isset($existencias[$producto->codprod][$producto->codubic]))
-                $existencias[$producto->codprod][$producto->codubic] = 0;
-
+            // Registrar existencia
+            if(!isset($existencias[$producto->codprod])) {
+                $existencias[$producto->codprod] = [];
+            }
             $existencias[$producto->codprod][$producto->codubic] = $producto->existen;
         }
 
-        return view('productosallinstsancias', compact('productos', 'deposito', 'existencias') )->render();
+        // ==========================================
+        // CALCULAR TOTALES PARA LA VISTA
+        // ==========================================
+        $totalcost = 0;
+        $existdepstt = 0;
 
+        foreach($productos as $codprod => $producto) {
+            if(isset($existencias[$codprod])) {
+                foreach($existencias[$codprod] as $depositoKey => $cantidad) {
+                    $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
+                    $existdepstt += $cantidad;
+                }
+            }
+        }
 
+        // ==========================================
+        // ORDENAR DEPÓSITOS (opcional)
+        // ==========================================
+        ksort($deposito);
+
+        // ==========================================
+        // RETORNAR VISTA CON TODOS LOS DATOS
+        // ==========================================
+        return view('productosallinstsancias', compact(
+            'productos',
+            'deposito',
+            'existencias',
+            'totalcost',
+            'existdepstt'
+        ));
     }
 
     public function listprodubic(Request $request)

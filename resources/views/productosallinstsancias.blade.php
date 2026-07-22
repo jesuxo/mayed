@@ -403,53 +403,32 @@
         }
     }
 </style>
+<style>
+    /* ... tus estilos ... */
+</style>
 
 <div class="row">
     <div class="col-lg-12">
         <div class="card card-existencias">
-            <!-- Header mejorado -->
             <div class="card-header align-items-center d-flex justify-content-between flex-wrap">
                 <h4 class="card-title mb-0">
                     <i class="bi bi-box-seam"></i>
                     EXISTENCIAS POR DEPÓSITO
                 </h4>
                 <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn-accion" onclick="exportarExcel()">
-                        <i class="bi bi-download"></i> Excel
-                    </button>
-                    <button class="btn-accion" onclick="window.print()">
-                        <i class="bi bi-printer"></i> Imprimir
-                    </button>
-                    <button class="btn-accion" onclick="toggleResumen()">
-                        <i class="bi bi-eye"></i> Resumen
-                    </button>
+                    <span class="badge bg-primary">
+                        <i class="bi bi-tag"></i> {{ count($productos) }} Productos
+                    </span>
+                    <span class="badge bg-success">
+                        <i class="bi bi-boxes"></i> {{ count($deposito) }} Depósitos
+                    </span>
+                    <span class="badge bg-warning text-dark">
+                        <i class="bi bi-box"></i> {{ number_format($existdepstt ?? 0, 0, ',', '.') }} Unds
+                    </span>
                 </div>
             </div>
 
-            <!-- Resumen Rápido (ocultable) -->
-            <div class="card-body pb-0" id="resumenContainer">
-                <div class="resumen-grid">
-                    <div class="resumen-item">
-                        <span class="label">Total Productos</span>
-                        <div class="value primary">{{ count($productos) }}</div>
-                    </div>
-                    <div class="resumen-item">
-                        <span class="label">Total Unidades</span>
-                        <div class="value success">{{ number_format($existdepstt ?? 0, 0, ',', '.') }}</div>
-                    </div>
-                    <div class="resumen-item">
-                        <span class="label">Depósitos</span>
-                        <div class="value warning">{{ count($deposito) }}</div>
-                    </div>
-                    <div class="resumen-item">
-                        <span class="label">Costo Total</span>
-                        <div class="value danger">$ {{ number_format($totalcost ?? 0, 2, ',', '.') }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tabla -->
-            <div class="card-body pt-2">
+            <div class="card-body">
                 <div class="scroll-existencias" style="max-height: 490px; overflow: auto;">
                     <table class="table-existencias table table-borderless table-centered align-middle table-nowrap mb-0">
                         <thead>
@@ -465,6 +444,7 @@
                                 </th>
                             @endforeach
                             <th width="9%" class="text-center">UNDS</th>
+                            <th width="9%" class="text-end">COSTO</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -475,7 +455,7 @@
                             $arraycantdep = array_fill(0, count($deposito), 0);
                         @endphp
 
-                        @foreach($productos as $index => $producto)
+                        @forelse($productos as $index => $producto)
                             @php
                                 $tantos++;
                                 $bgcolor = ($tantos % 2 == 0) ? '#ffffff' : '#f8f9fa';
@@ -487,7 +467,7 @@
                                 <td align="center" class="codigo-prod">{{ $index }}</td>
                                 <td align="left" class="nombre-prod">{{ $producto['descrip'] ?? '' }}</td>
                                 <td align="center" class="descrip2-prod">
-                                    {{ isset($producto['descrip2']) ? $producto['descrip2'] : '-' }}
+                                    {{ $producto['descrip2'] ?? '-' }}
                                 </td>
 
                                 @foreach($deposito as $indexdep => $descripdepo)
@@ -520,32 +500,47 @@
                                 <td align="center" class="total-unds">
                                     {{ number_format($existdeps, 0, ',', '.') }}
                                 </td>
-                            </tr>
-                        @endforeach
-
-                        <!-- FILA DE TOTALES MEJORADA -->
-                        <tr class="fila-total">
-                            <td colspan="3" align="right">
-                                <strong>TOTALES</strong>
-                            </td>
-                            @foreach($deposito as $indexdep => $descripdepo)
-                                <td align="center" class="total-unds-footer">
-                                    @if(isset($arraycantdep[$indexdep]) && $arraycantdep[$indexdep] > 0)
-                                        {{ number_format($arraycantdep[$indexdep], 0, ',', '.') }}
-                                    @else
-                                        <span style="color: rgba(255,255,255,0.4);">-</span>
-                                    @endif
+                                <td align="right" class="total-costo">
+                                    $ {{ number_format($existdeps * ($producto['preciodpro'] ?? 0), 2, ',', '.') }}
                                 </td>
-                            @endforeach
-                            <td align="center" class="total-unds-footer">
-                                <strong>{{ number_format($existdepstt, 0, ',', '.') }}</strong>
-                            </td>
-                        </tr>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="{{ count($deposito) + 4 }}" align="center" style="padding: 40px 0;">
+                                    <i class="bi bi-inbox" style="font-size: 48px; color: #ccc;"></i>
+                                    <h5 style="color: #6c757d; margin-top: 10px;">No hay productos con existencias</h5>
+                                    <p style="color: #999; font-size: 0.85rem;">No se encontraron productos en esta categoría</p>
+                                </td>
+                            </tr>
+                        @endforelse
+
+                        @if(count($productos) > 0)
+                            <!-- FILA DE TOTALES -->
+                            <tr class="fila-total">
+                                <td colspan="3" align="right">
+                                    <strong>TOTALES</strong>
+                                </td>
+                                @foreach($deposito as $indexdep => $descripdepo)
+                                    <td align="center" class="total-unds-footer">
+                                        @if(isset($arraycantdep[$indexdep]) && $arraycantdep[$indexdep] > 0)
+                                            {{ number_format($arraycantdep[$indexdep], 0, ',', '.') }}
+                                        @else
+                                            <span style="color: rgba(255,255,255,0.4);">-</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                                <td align="center" class="total-unds-footer">
+                                    <strong>{{ number_format($existdepstt, 0, ',', '.') }}</strong>
+                                </td>
+                                <td align="right" class="total-costo-footer">
+                                    $ {{ number_format($totalcost, 2, ',', '.') }}
+                                </td>
+                            </tr>
+                        @endif
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Pie de tabla con información adicional -->
                 <div class="d-flex justify-content-between align-items-center mt-2 text-muted" style="font-size: 0.7rem;">
                     <span>
                         <i class="bi bi-info-circle me-1"></i>
