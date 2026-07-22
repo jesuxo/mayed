@@ -3,7 +3,8 @@
         <thead class="text-muted table-light">
         <tr>
             <th width="5%" class="text-center">Código</th>
-            <th width="40%" class="text-center">Producto</th>
+            <th width="30%" class="text-center">Producto</th>
+            <th width="10%" class="text-center">Marca</th>
             <th width="8%" class="text-center">CostoPro </th>
             <th width="8%" class="text-center">Precio3</th>
             <th width="25%" class="text-center">Existencias por Sucursal</th>
@@ -50,6 +51,11 @@
                         <a href="{{ route('productos.edit', $producto->id) }}" class="ms-2">
                             <i class="bi-pencil-square text-primary"></i>
                         </a>
+                    </div>
+                </td>
+                <td class="align-middle">
+                    <div class="d-flex justify-content-between align-items-center">
+                            {{ $producto->marca }}
                     </div>
                 </td>
                 <td class="text-end align-middle">
@@ -104,7 +110,7 @@
                         </a>
                     </div>
                 </td>
-                <td colspan="5" class="text-center py-4">
+                <td colspan="6" class="text-center py-4">
                     <div class="text-muted">
                         <i class="bi-search fs-1 d-block mb-2"></i>
                         <h6>No se encontraron productos</h6>

@@ -52,6 +52,11 @@
         background-color: rgba(13, 110, 253, 0.1) !important;
         border-left: 3px solid #0d6efd;
     }
+    @media (min-width:1000px ) {
+        #searchModal{
+            min-width: 92% !important;
+        }
+    }
 </style>
 <header id="page-topbar">
     <div class="layout-width">
@@ -677,29 +682,22 @@
 
                     <script>
                         $(document).ready(function() {
-                            let currentSelectedIndex = -1;
-                            let searchResults = [];
-                            let isScrolling = false;
-                            let mouseOverIndex = -1;
+
+                            let currentSelectedIndex     = -1;
+                            let searchResults            = [];
+                            let isScrolling              = false;
+                            let mouseOverIndex           = -1;
                             let isNavigatingWithKeyboard = false;
+                            let hasSearchResults         = false;
 
-
-
-                            // Variable para saber si ya se realizó una búsqueda
-                            let hasSearchResults = false;
-
-                            // Evento para el input de búsqueda
-
-
-                            // Evento para el botón "Limpiar"
                             $('#search-close-options').off('click').on('click', function() {
                                 $('#search-options').val('');
                                 $('#textbusqueda').html('');
                                 $('#ajaxbusquedaproductos').html('');
-                                searchResults = [];
+                                searchResults        = [];
                                 currentSelectedIndex = -1;
-                                mouseOverIndex = -1;
-                                hasSearchResults = false;
+                                mouseOverIndex       = -1;
+                                hasSearchResults     = false;
                                 $('#search-options').focus();
                             });
 
@@ -708,9 +706,9 @@
                                 const $input = $('#search-options');
                                 $input.focus();
                                 currentSelectedIndex = -1;
-                                searchResults = [];
-                                mouseOverIndex = -1;
-                                hasSearchResults = false;
+                                searchResults        = [];
+                                mouseOverIndex       = -1;
+                                hasSearchResults     = false;
 
                                 // Limpiar búsqueda anterior
                                 $input.val('');
@@ -721,9 +719,9 @@
                             // Cuando se cierra el modal
                             $('#searchModal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
                                 currentSelectedIndex = -1;
-                                searchResults = [];
-                                mouseOverIndex = -1;
-                                hasSearchResults = false;
+                                searchResults        = [];
+                                mouseOverIndex       = -1;
+                                hasSearchResults     = false;
                             });
 
                             // Navegación con mouse - SOLO efecto visual
@@ -740,13 +738,12 @@
 
                             $(document).off('mouseleave.searchModal', '#ajaxbusquedaproductos tbody tr').on('mouseleave.searchModal', '#ajaxbusquedaproductos tbody tr', function() {
                                 if ($('#searchModal').hasClass('show')) {
-
                                     $('.search-mouse-hover').removeClass('search-mouse-hover');
                                 }
                             });
 
-
                         });
+
                         function updateSearchResults(response) {
                             $('#ajaxbusquedaproductos').html(response);
 
