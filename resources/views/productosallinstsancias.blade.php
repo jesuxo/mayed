@@ -51,7 +51,7 @@
                             <tr  bgcolor="{{$bgcolor}}" style="color:#333;">
                                 <td align="center" class="titulo "> {{$index}}</td>
                                 <td align="left"   class="titulo  "> {{$producto['descrip'] }}</td>
-                                <td align="right"   class="titulo  "> {{$producto['descrip2'] }} </td>
+                                <td align="right"   class="titulo  "> {{(isset($producto['descrip2']))? $producto['descrip2'] : '' }} </td>
                                 @foreach($deposito as $indexdep => $descripdepo)
                                 <td align="center" class="titulo ">
                                     @php
@@ -81,7 +81,7 @@
                             @foreach($deposito as $indexdep => $descripdepo)
                                 <td align="center" class="titulo tdlineff ">  {{($arraycantdep[$indexdep])? $arraycantdep[$indexdep] :'' }}</td>
                             @endforeach
-                            <td align="right"   class="titulo  "> {{$existdepstt }} </td> 
+                            <td align="right"   class="titulo  "> {{$existdepstt }} </td>
                         </tr>
                         </tbody>
                     </table>
