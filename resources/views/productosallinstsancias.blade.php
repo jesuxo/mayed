@@ -499,9 +499,7 @@
                                 <td align="center" class="total-unds">
                                     {{ number_format($existdeps, 0, ',', '.') }}
                                 </td>
-                                <td align="right" class="total-costo">
-                                    $ {{ number_format($existdeps * ($producto['preciodpro'] ?? 0), 2, ',', '.') }}
-                                </td>
+
                             </tr>
                         @empty
                             <tr>
