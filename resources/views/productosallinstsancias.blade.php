@@ -82,14 +82,6 @@
         color: #fff !important;
     }
 
-    .table-existencias-modal .fila-total td:first-child {
-        border-radius: 0;
-    }
-
-    .table-existencias-modal .fila-total td:last-child {
-        border-radius: 0;
-    }
-
     /* Badges de cantidad */
     .badge-cantidad-modal {
         display: inline-block;
@@ -189,7 +181,7 @@
     }
 
     /* ========================================== */
-    /* FILTRO DE DEPÓSITOS - DENTRO DEL MODAL */
+    /* FILTRO DE DEPÓSITOS CON REORDENAMIENTO */
     /* ========================================== */
     .deposito-filter-modal {
         background: #f8f9fa;
@@ -207,25 +199,52 @@
         display: block;
     }
 
-    .deposito-filter-modal .deposito-check {
+    .deposito-filter-modal .depositos-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        margin-bottom: 4px;
+    }
+
+    .deposito-filter-modal .deposito-item {
         display: inline-flex;
         align-items: center;
-        margin-right: 6px;
-        margin-bottom: 3px;
-        cursor: pointer;
-        padding: 2px 8px;
-        border-radius: 16px;
         background: #fff;
         border: 1px solid #dee2e6;
+        border-radius: 16px;
+        padding: 2px 8px;
         transition: all 0.2s ease;
+        cursor: grab;
         font-size: 0.65rem;
+        user-select: none;
     }
 
-    .deposito-filter-modal .deposito-check:hover {
-        background: #e9ecef;
+    .deposito-filter-modal .deposito-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    .deposito-filter-modal .deposito-check input[type="checkbox"] {
+    .deposito-filter-modal .deposito-item:active {
+        cursor: grabbing;
+    }
+
+    .deposito-filter-modal .deposito-item.dragging {
+        opacity: 0.5;
+        transform: scale(0.95);
+    }
+
+    .deposito-filter-modal .deposito-item .drag-handle {
+        cursor: grab;
+        color: #adb5bd;
+        margin-right: 4px;
+        font-size: 0.6rem;
+    }
+
+    .deposito-filter-modal .deposito-item .drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .deposito-filter-modal .deposito-item input[type="checkbox"] {
         margin-right: 4px;
         accent-color: #0072c5;
         width: 12px;
@@ -233,9 +252,30 @@
         cursor: pointer;
     }
 
-    .deposito-filter-modal .deposito-check.checked {
+    .deposito-filter-modal .deposito-item.checked {
         background: #cce5ff;
         border-color: #0072c5;
+    }
+
+    .deposito-filter-modal .deposito-item .deposito-nombre {
+        font-size: 0.65rem;
+        color: #2c3e50;
+    }
+
+    .deposito-filter-modal .deposito-item .orden-numero {
+        font-size: 0.5rem;
+        color: #6c757d;
+        margin-left: 4px;
+        background: #e9ecef;
+        padding: 0 4px;
+        border-radius: 8px;
+    }
+
+    .deposito-filter-modal .filter-actions {
+        display: flex;
+        gap: 3px;
+        flex-wrap: wrap;
+        margin-top: 4px;
     }
 
     .deposito-filter-modal .btn-aplicar-modal {
@@ -281,6 +321,21 @@
         background: #c82333;
     }
 
+    .deposito-filter-modal .btn-resetear-orden {
+        background: #6c757d;
+        color: #fff;
+        border: none;
+        padding: 3px 10px;
+        border-radius: 16px;
+        font-size: 0.6rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .deposito-filter-modal .btn-resetear-orden:hover {
+        background: #5a6268;
+    }
+
     .deposito-filter-modal .badge-depositos-modal {
         background: #0072c5;
         color: #fff;
@@ -290,11 +345,37 @@
         margin-left: 4px;
     }
 
-    .deposito-filter-modal .filter-actions {
-        display: flex;
-        gap: 3px;
-        flex-wrap: wrap;
-        margin-top: 3px;
+    .deposito-filter-modal .orden-indicador {
+        font-size: 0.55rem;
+        color: #6c757d;
+        margin-left: 6px;
+    }
+
+    /* ========================================== */
+    /* DRAG AND DROP STYLES */
+    /* ========================================== */
+    .deposito-item.drag-over {
+        border-color: #0072c5;
+        background: #e6f3ff;
+        transform: scale(1.05);
+        box-shadow: 0 2px 12px rgba(0,114,197,0.2);
+    }
+
+    .deposito-item.dragging {
+        opacity: 0.3;
+        transform: scale(0.9);
+    }
+
+    .deposito-item .drag-handle {
+        cursor: grab;
+        color: #adb5bd;
+        margin-right: 4px;
+        font-size: 0.6rem;
+        transition: color 0.2s ease;
+    }
+
+    .deposito-item:hover .drag-handle {
+        color: #0072c5;
     }
 
     /* Barra de información */
@@ -331,14 +412,18 @@
             padding: 6px 8px;
         }
 
-        .deposito-filter-modal .deposito-check {
+        .deposito-filter-modal .deposito-item {
             font-size: 0.55rem;
             padding: 1px 6px;
-            margin-right: 3px;
+        }
+
+        .deposito-filter-modal .deposito-item .deposito-nombre {
+            font-size: 0.55rem;
         }
 
         .deposito-filter-modal .btn-aplicar-modal,
-        .deposito-filter-modal .btn-seleccionar-todos-modal {
+        .deposito-filter-modal .btn-seleccionar-todos-modal,
+        .deposito-filter-modal .btn-resetear-orden {
             font-size: 0.55rem;
             padding: 2px 8px;
         }
@@ -368,30 +453,41 @@
 
 <div class="card-existencias-modal">
     <!-- ========================================== -->
-    <!-- FILTRO DE DEPÓSITOS DENTRO DEL MODAL -->
+    <!-- FILTRO DE DEPÓSITOS CON REORDENAMIENTO -->
     <!-- ========================================== -->
     @if(count($deposito) > 0)
         <div class="deposito-filter-modal">
             <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <div>
+                <div style="flex: 1;">
                 <span class="filter-label">
-                    <i class="bi bi-funnel"></i> Filtrar por Depósito:
+                    <i class="bi bi-arrow-up-down"></i> Ordenar y Filtrar Depósitos:
                     <span class="badge-depositos-modal" id="contadorSeleccionadosModal">
                         {{ count($depositoValues) }} seleccionados
                     </span>
+                    <span class="orden-indicador">
+                        <i class="bi bi-grip-vertical"></i> Arrastra para reordenar
+                    </span>
                 </span>
-                    <div id="depositosCheckboxesModal">
+                    <div class="depositos-container" id="depositosContainer">
                         @foreach($deposito as $key => $nombre)
                             @php
                                 $checked = in_array($key, $depositosSeleccionados ?? array_keys($deposito));
+                                $posicion = array_search($key, array_keys($deposito)) + 1;
                             @endphp
-                            <label class="deposito-check {{ $checked ? 'checked' : '' }}">
+                            <div class="deposito-item {{ $checked ? 'checked' : '' }}"
+                                 data-key="{{ $key }}"
+                                 data-posicion="{{ $posicion }}"
+                                 draggable="true">
+                            <span class="drag-handle">
+                                <i class="bi bi-grip-vertical"></i>
+                            </span>
                                 <input type="checkbox"
                                        class="deposito-checkbox-modal"
                                        value="{{ $key }}"
                                     {{ $checked ? 'checked' : '' }}>
-                                {{ Str::limit($nombre, 14) }}
-                            </label>
+                                <span class="deposito-nombre">{{ Str::limit($nombre, 14) }}</span>
+                                <span class="orden-numero">{{ $posicion }}</span>
+                            </div>
                         @endforeach
                     </div>
                 </div>
@@ -401,6 +497,9 @@
                     </button>
                     <button class="btn-seleccionar-todos-modal rojo" onclick="deseleccionarTodosModal()">
                         <i class="bi bi-x"></i> Ninguno
+                    </button>
+                    <button class="btn-resetear-orden" onclick="resetearOrdenModal()" title="Restaurar orden original">
+                        <i class="bi bi-arrow-counterclockwise"></i> Orden
                     </button>
                     <button class="btn-aplicar-modal" onclick="aplicarFiltroModal()">
                         <i class="bi bi-check2"></i> Aplicar
@@ -532,20 +631,154 @@
 
 <script>
     // ==========================================
-    // FILTRO DE DEPÓSITOS - DENTRO DEL MODAL
+    // DRAG AND DROP PARA REORDENAR DEPÓSITOS
     // ==========================================
 
-    // Variables para almacenar los parámetros actuales
+    var draggedItem = null;
+    var dragOverItem = null;
+
+    // Inicializar eventos de drag and drop
+    function inicializarDragDrop() {
+        var items = document.querySelectorAll('.deposito-item');
+
+        items.forEach(function(item) {
+            // Remover eventos previos para evitar duplicados
+            item.removeEventListener('dragstart', handleDragStart);
+            item.removeEventListener('dragend', handleDragEnd);
+            item.removeEventListener('dragover', handleDragOver);
+            item.removeEventListener('dragenter', handleDragEnter);
+            item.removeEventListener('dragleave', handleDragLeave);
+            item.removeEventListener('drop', handleDrop);
+
+            // Agregar eventos
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('dragenter', handleDragEnter);
+            item.addEventListener('dragleave', handleDragLeave);
+            item.addEventListener('drop', handleDrop);
+        });
+    }
+
+    function handleDragStart(e) {
+        draggedItem = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.deposito-item').forEach(function(item) {
+            item.classList.remove('drag-over');
+        });
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleDragEnter(e) {
+        e.preventDefault();
+        if (this !== draggedItem) {
+            this.classList.add('drag-over');
+        }
+    }
+
+    function handleDragLeave(e) {
+        this.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        this.classList.remove('drag-over');
+
+        if (draggedItem !== this) {
+            // Obtener el contenedor
+            var container = document.getElementById('depositosContainer');
+            var items = container.querySelectorAll('.deposito-item');
+
+            // Determinar posición de drop
+            var draggedIndex = Array.from(items).indexOf(draggedItem);
+            var targetIndex = Array.from(items).indexOf(this);
+
+            if (draggedIndex < targetIndex) {
+                this.parentNode.insertBefore(draggedItem, this.nextSibling);
+            } else {
+                this.parentNode.insertBefore(draggedItem, this);
+            }
+
+            // Actualizar números de orden
+            actualizarNumerosOrden();
+        }
+
+        draggedItem = null;
+        return false;
+    }
+
+    // Actualizar números de orden visuales
+    function actualizarNumerosOrden() {
+        var items = document.querySelectorAll('.deposito-item');
+        items.forEach(function(item, index) {
+            var numSpan = item.querySelector('.orden-numero');
+            if (numSpan) {
+                numSpan.textContent = index + 1;
+            }
+            item.dataset.posicion = index + 1;
+        });
+    }
+
+    // Obtener orden actual de depósitos
+    function getOrdenDepositos() {
+        var items = document.querySelectorAll('.deposito-item');
+        var orden = [];
+        items.forEach(function(item) {
+            var key = item.dataset.key;
+            if (key) {
+                orden.push(key);
+            }
+        });
+        return orden;
+    }
+
+    // Resetear orden original (por código)
+    function resetearOrdenModal() {
+        var container = document.getElementById('depositosContainer');
+        var items = container.querySelectorAll('.deposito-item');
+        var itemsArray = Array.from(items);
+
+        // Ordenar por key (código)
+        itemsArray.sort(function(a, b) {
+            return a.dataset.key.localeCompare(b.dataset.key);
+        });
+
+        // Reinsertar en el orden correcto
+        itemsArray.forEach(function(item) {
+            container.appendChild(item);
+        });
+
+        actualizarNumerosOrden();
+
+        // Aplicar el filtro con el nuevo orden
+        aplicarFiltroModal();
+    }
+
+    // ==========================================
+    // FILTRO DE DEPÓSITOS
+    // ==========================================
+
     var modalCodalte = '{{ $codalte ?? '' }}';
     var modalBusqueda = '';
 
-    // Obtener la búsqueda actual del input
     function getModalBusqueda() {
         var input = document.getElementById('busquedaentredepositos');
         return input ? input.value : '';
     }
 
-    // Actualizar contador de seleccionados
     function actualizarContadorModal() {
         var checkboxes = document.querySelectorAll('.deposito-checkbox-modal:checked');
         var total = document.querySelectorAll('.deposito-checkbox-modal').length;
@@ -554,22 +787,19 @@
             contador.textContent = checkboxes.length + ' seleccionados';
         }
 
-        // Actualizar badges
         var footerDep = document.getElementById('footerDepositosModal');
         if (footerDep) footerDep.textContent = checkboxes.length;
 
-        // Marcar/desmarcar estilo de los labels
-        document.querySelectorAll('.deposito-check').forEach(function(label) {
-            var checkbox = label.querySelector('.deposito-checkbox-modal');
+        document.querySelectorAll('.deposito-item').forEach(function(item) {
+            var checkbox = item.querySelector('.deposito-checkbox-modal');
             if (checkbox && checkbox.checked) {
-                label.classList.add('checked');
+                item.classList.add('checked');
             } else {
-                label.classList.remove('checked');
+                item.classList.remove('checked');
             }
         });
     }
 
-    // Seleccionar todos
     function seleccionarTodosModal() {
         document.querySelectorAll('.deposito-checkbox-modal').forEach(function(cb) {
             cb.checked = true;
@@ -577,7 +807,6 @@
         actualizarContadorModal();
     }
 
-    // Deseleccionar todos
     function deseleccionarTodosModal() {
         document.querySelectorAll('.deposito-checkbox-modal').forEach(function(cb) {
             cb.checked = false;
@@ -585,7 +814,6 @@
         actualizarContadorModal();
     }
 
-    // Aplicar filtro - recarga el contenido del modal
     function aplicarFiltroModal() {
         var checkboxes = document.querySelectorAll('.deposito-checkbox-modal:checked');
         var depositos = [];
@@ -598,11 +826,10 @@
             return;
         }
 
-        // Obtener la búsqueda actual
         var busqueda = getModalBusqueda();
         modalBusqueda = busqueda;
+        var orden = getOrdenDepositos();
 
-        // Mostrar loading
         var content = document.getElementById('contentviewprodcodalte');
         if (content) {
             content.innerHTML = `
@@ -615,13 +842,13 @@
             `;
         }
 
-        // Llamar al método del controlador con los depósitos seleccionados
         $.ajax({
             type: 'post',
             data: {
                 codalte: modalCodalte,
                 busqueda: busqueda,
-                depositos: JSON.stringify(depositos)
+                depositos: JSON.stringify(depositos),
+                orden_depositos: JSON.stringify(orden)
             },
             url: '/saprod/viewprodinstsanciascodalte',
             headers: {
@@ -630,7 +857,6 @@
             success: function(response) {
                 if (content) {
                     content.innerHTML = response;
-                    // Re-inicializar eventos del filtro
                     setTimeout(function() {
                         inicializarFiltroModal();
                     }, 100);
@@ -649,18 +875,15 @@
         });
     }
 
-    // Función para recargar con búsqueda (desde el input)
     function recargarModalConBusqueda(busqueda) {
         modalBusqueda = busqueda;
 
-        // Obtener depósitos seleccionados actuales
         var checkboxes = document.querySelectorAll('.deposito-checkbox-modal:checked');
         var depositos = [];
         checkboxes.forEach(function(cb) {
             depositos.push(cb.value);
         });
 
-        // Si no hay depósitos seleccionados, usar todos
         if (depositos.length === 0) {
             var allCheckboxes = document.querySelectorAll('.deposito-checkbox-modal');
             allCheckboxes.forEach(function(cb) {
@@ -668,7 +891,8 @@
             });
         }
 
-        // Mostrar loading
+        var orden = getOrdenDepositos();
+
         var content = document.getElementById('contentviewprodcodalte');
         if (content) {
             content.innerHTML = `
@@ -686,7 +910,8 @@
             data: {
                 codalte: modalCodalte,
                 busqueda: busqueda,
-                depositos: JSON.stringify(depositos)
+                depositos: JSON.stringify(depositos),
+                orden_depositos: JSON.stringify(orden)
             },
             url: '/saprod/viewprodinstsanciascodalte',
             headers: {
@@ -713,18 +938,20 @@
         });
     }
 
-    // Inicializar eventos del filtro (se llama después de recargar el contenido)
     function inicializarFiltroModal() {
-        // Evento para los checkboxes
+        // Checkboxes
         document.querySelectorAll('.deposito-checkbox-modal').forEach(function(cb) {
             cb.removeEventListener('change', actualizarContadorModal);
             cb.addEventListener('change', actualizarContadorModal);
         });
 
+        // Inicializar drag and drop
+        inicializarDragDrop();
+
         // Inicializar contador
         actualizarContadorModal();
 
-        // Inicializar tooltips
+        // Tooltips
         if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function(tooltipTriggerEl) {
@@ -755,9 +982,7 @@
         inicializarFiltroModal();
     });
 
-    // También inicializar cuando el modal se abre completamente
     $(document).ready(function() {
-        // Cuando el modal se muestra, reinicializar el filtro
         $('#viewprodcodaltemodal').on('shown.bs.modal', function() {
             setTimeout(function() {
                 inicializarFiltroModal();

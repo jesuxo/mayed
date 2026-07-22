@@ -1305,10 +1305,16 @@ class SaprodController extends Controller
         $busqueda = $request->busqueda ?? '';
         $len      = strlen($codalte);
 
-        // Obtener depósitos seleccionados (para filtrar)
+        // Obtener depósitos seleccionados
         $depositosSeleccionados = $request->input('depositos', []);
         if(is_string($depositosSeleccionados)) {
             $depositosSeleccionados = json_decode($depositosSeleccionados, true) ?? [];
+        }
+
+        // Obtener orden de depósitos
+        $ordenDepositos = $request->input('orden_depositos', []);
+        if(is_string($ordenDepositos)) {
+            $ordenDepositos = json_decode($ordenDepositos, true) ?? [];
         }
 
         // Construir búsqueda
@@ -1377,20 +1383,37 @@ class SaprodController extends Controller
         }
 
         // ==========================================
+        // APLICAR ORDEN PERSONALIZADO
+        // ==========================================
+        if(!empty($ordenDepositos)) {
+            $depositoOrdenado = [];
+            foreach($ordenDepositos as $key) {
+                if(isset($deposito[$key])) {
+                    $depositoOrdenado[$key] = $deposito[$key];
+                }
+            }
+            // Agregar los que no estaban en el orden
+            foreach($deposito as $key => $nombre) {
+                if(!isset($depositoOrdenado[$key])) {
+                    $depositoOrdenado[$key] = $nombre;
+                }
+            }
+            $deposito = $depositoOrdenado;
+        }
+
+        // ==========================================
         // FILTRAR DEPÓSITOS SELECCIONADOS
         // ==========================================
         $depositosFiltrados = [];
         $existenciasFiltradas = [];
 
         if(!empty($depositosSeleccionados)) {
-            // Solo mantener los depósitos seleccionados
             foreach($deposito as $key => $nombre) {
                 if(in_array($key, $depositosSeleccionados)) {
                     $depositosFiltrados[$key] = $nombre;
                 }
             }
 
-            // Filtrar existencias solo para los depósitos seleccionados
             foreach($existencias as $codprod => $depositosProd) {
                 $existenciasFiltradas[$codprod] = [];
                 foreach($depositosProd as $depKey => $cantidad) {
@@ -1400,7 +1423,6 @@ class SaprodController extends Controller
                 }
             }
         } else {
-            // Si no hay selección, mostrar todos
             $depositosFiltrados = $deposito;
             $existenciasFiltradas = $existencias;
         }
@@ -1411,7 +1433,7 @@ class SaprodController extends Controller
         $depositoValues = array_values($depositosFiltrados);
         $depositoKeys = array_keys($depositosFiltrados);
 
-        // Calcular totales solo con depósitos filtrados
+        // Calcular totales
         $totalcost = 0;
         $existdepstt = 0;
         foreach($productos as $codprod => $producto) {
@@ -1425,17 +1447,18 @@ class SaprodController extends Controller
 
         return view('productosallinstsancias', compact(
             'productos',
-            'deposito',              // Original (todos)
+            'deposito',              // Original (todos, pero ordenados)
             'depositoKeys',          // Keys filtrados
             'depositoValues',        // Valores filtrados
-            'existenciasFiltradas',  // Existencias filtradas
-            'existencias',           // Existencias originales (para referencia)
-            'depositosFiltrados',    // Depósitos filtrados
+            'existenciasFiltradas',
+            'existencias',
+            'depositosFiltrados',
             'totalcost',
             'existdepstt',
             'depositosSeleccionados',
             'codalte',
-            'busqueda'
+            'busqueda',
+            'ordenDepositos'         // Para mantener el orden
         ));
     }
 

@@ -774,8 +774,6 @@
             abrirmodalexistencias(codalte, busqued);
         });
 
-        // Búsqueda en tiempo real dentro del modal
-        // Búsqueda en tiempo real dentro del modal
         $('#busquedaentredepositos').off('keyup').on('keyup', function() {
             var busqueda = $(this).val();
 
@@ -783,7 +781,7 @@
             if (typeof recargarModalConBusqueda === 'function') {
                 recargarModalConBusqueda(busqueda);
             } else {
-                // Fallback: si la función no está definida, usar el método tradicional
+                // Fallback
                 $('#contentviewprodcodalte').html(`
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
