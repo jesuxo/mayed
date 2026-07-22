@@ -10,7 +10,6 @@
     }
 
     .card-existencias .card-header {
-        background: linear-gradient(135deg, #0072c5 0%, #0056a7 100%);
         color: #fff;
         padding: 16px 24px;
         border-bottom: none;
@@ -411,10 +410,7 @@
     <div class="col-lg-12">
         <div class="card card-existencias">
             <div class="card-header align-items-center d-flex justify-content-between flex-wrap">
-                <h4 class="card-title mb-0">
-                    <i class="bi bi-box-seam"></i>
-                    EXISTENCIAS POR DEPÓSITO
-                </h4>
+
                 <div class="d-flex gap-2 flex-wrap">
                     <span class="badge bg-primary">
                         <i class="bi bi-tag"></i> {{ count($productos) }} Productos
