@@ -73,12 +73,13 @@
 
     /* Fila de totales */
     .table-existencias-modal .fila-total {
-        background: linear-gradient(135deg, #0072c5 0%, #0056a7 100%) !important;
+        background: #0072c5 !important;
         color: #fff !important;
         font-weight: 700;
     }
 
     .table-existencias-modal .fila-total td {
+        background: #0072c5 !important;
         padding: 8px 6px;
         font-size: 0.8rem;
         border-top: 2px solid #0056a7;
@@ -621,7 +622,7 @@
 
                 @if(count($productos) > 0)
                     <!-- FILA DE TOTALES (sticky bottom) -->
-                    <tr class="fila-total">
+                    <tr class="fila-total" bgcolor="#0072c5">
                         <td colspan="3" align="right">
                             <strong>TOTALES</strong>
                         </td>
