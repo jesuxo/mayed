@@ -1305,6 +1305,12 @@ class SaprodController extends Controller
         $busqueda = $request->busqueda ?? '';
         $len      = strlen($codalte);
 
+        // Obtener depósitos seleccionados (para filtrar)
+        $depositosSeleccionados = $request->input('depositos', []);
+        if(is_string($depositosSeleccionados)) {
+            $depositosSeleccionados = json_decode($depositosSeleccionados, true) ?? [];
+        }
+
         // Construir búsqueda
         $cadena = '';
         if(!empty($busqueda)) {
@@ -1328,7 +1334,7 @@ class SaprodController extends Controller
 
         // Consulta
         $sqlcostoinv = "SELECT a.preciodant, a.preciodpro, a.preciod, a.descrip, a.descrip2,
-                               a.codprod, e.codubic, b.existen, e.descrip as deposito
+                           a.codprod, e.codubic, b.existen, e.descrip as deposito
                     FROM saprod a
                     INNER JOIN saexis b ON a.codprod = b.codprod
                     INNER JOIN sasucursal c ON b.fk_sucursal = c.id
@@ -1371,17 +1377,46 @@ class SaprodController extends Controller
         }
 
         // ==========================================
-        // REINDEXAR DEPÓSITOS PARA EVITAR ERRORES
+        // FILTRAR DEPÓSITOS SELECCIONADOS
         // ==========================================
-        $depositoValues = array_values($deposito); // Solo valores
-        $depositoKeys = array_keys($deposito);     // Solo keys (códigos)
+        $depositosFiltrados = [];
+        $existenciasFiltradas = [];
 
-        // Calcular totales
+        if(!empty($depositosSeleccionados)) {
+            // Solo mantener los depósitos seleccionados
+            foreach($deposito as $key => $nombre) {
+                if(in_array($key, $depositosSeleccionados)) {
+                    $depositosFiltrados[$key] = $nombre;
+                }
+            }
+
+            // Filtrar existencias solo para los depósitos seleccionados
+            foreach($existencias as $codprod => $depositosProd) {
+                $existenciasFiltradas[$codprod] = [];
+                foreach($depositosProd as $depKey => $cantidad) {
+                    if(in_array($depKey, $depositosSeleccionados)) {
+                        $existenciasFiltradas[$codprod][$depKey] = $cantidad;
+                    }
+                }
+            }
+        } else {
+            // Si no hay selección, mostrar todos
+            $depositosFiltrados = $deposito;
+            $existenciasFiltradas = $existencias;
+        }
+
+        // ==========================================
+        // REINDEXAR DEPÓSITOS
+        // ==========================================
+        $depositoValues = array_values($depositosFiltrados);
+        $depositoKeys = array_keys($depositosFiltrados);
+
+        // Calcular totales solo con depósitos filtrados
         $totalcost = 0;
         $existdepstt = 0;
         foreach($productos as $codprod => $producto) {
-            if(isset($existencias[$codprod])) {
-                foreach($existencias[$codprod] as $cantidad) {
+            if(isset($existenciasFiltradas[$codprod])) {
+                foreach($existenciasFiltradas[$codprod] as $cantidad) {
                     $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
                     $existdepstt += $cantidad;
                 }
@@ -1390,12 +1425,15 @@ class SaprodController extends Controller
 
         return view('productosallinstsancias', compact(
             'productos',
-            'deposito',          // Original (con keys)
-            'depositoKeys',      // Solo keys
-            'depositoValues',    // Solo valores reindexados
-            'existencias',
+            'deposito',              // Original (todos)
+            'depositoKeys',          // Keys filtrados
+            'depositoValues',        // Valores filtrados
+            'existenciasFiltradas',  // Existencias filtradas
+            'existencias',           // Existencias originales (para referencia)
+            'depositosFiltrados',    // Depósitos filtrados
             'totalcost',
-            'existdepstt'
+            'existdepstt',
+            'depositosSeleccionados'
         ));
     }
 
