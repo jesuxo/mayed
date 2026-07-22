@@ -1353,6 +1353,7 @@ class SaprodController extends Controller
             if(!isset($productos[$producto->codprod])) {
                 $productos[$producto->codprod] = [
                     'descrip'    => $producto->descrip,
+                    'descrip2'   => $producto->descrip2,
                     'preciodpro' => $producto->preciodpro,
                     'preciod'    => $producto->preciod,
                     'preciodant' => $producto->preciodant ?? 0,

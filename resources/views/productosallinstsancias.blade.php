@@ -457,8 +457,8 @@
                             @endphp
 
                             <tr bgcolor="{{ $bgcolor }}" style="color:#2c3e50;">
-                                <td align="center" class="codigo-prod">{{ $index }}</td>
-                                <td align="left" class="nombre-prod">{{ $producto['descrip'] ?? '' }}</td>
+                                <td align="center" class="codigo-prod"  >{{ $index }}</td>
+                                <td align="left"   class="nombre-prod"  >{{ $producto['descrip'] ?? '' }}</td>
                                 <td align="center" class="descrip2-prod">
                                     {{ $producto['descrip2'] ?? '-' }}
                                 </td>
