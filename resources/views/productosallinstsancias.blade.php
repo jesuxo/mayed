@@ -416,8 +416,8 @@
                     <span class="badge bg-success">
                         <i class="bi bi-boxes"></i> {{ count($deposito) }} Depósitos
                     </span>
-                    <span class="badge bg-warning text-dark">
-                        <i class="bi bi-box"></i> {{ number_format($existdepstt ?? 0, 0, ',', '.') }} Unds
+                    <span class="badge bg-warning text-dark" id="htmlunds">
+                        <i class="bi bi-box"></i>    Unds
                     </span>
                 </div>
             </div>
@@ -521,7 +521,7 @@
                                     </td>
                                 @endforeach
                                 <td align="center" class="total-unds-footer">
-                                    <strong>{{ number_format($existdepstt, 0, ',', '.') }}</strong>
+                                    <strong>{{ $existdepstt+0 }}</strong>
                                 </td>
 
                             </tr>
@@ -545,11 +545,9 @@
 </div>
 
 <script>
-    // ==========================================
-    // FUNCIONES ADICIONALES
-    // ==========================================
 
-    // Toggle resumen
+    $('#htmlunds').html('<i class="bi bi-box"></i> {{$existdepstt+0}}   Unds');
+
     function toggleResumen() {
         var container = document.getElementById('resumenContainer');
         if (container.style.display === 'none') {
