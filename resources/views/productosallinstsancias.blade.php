@@ -436,7 +436,7 @@
                             <th width="4%" class="text-center">CÓD</th>
                             <th width="20%">PRODUCTO</th>
                             <th width="9%" class="text-center">REF</th>
-                            @foreach($deposito as $indexdep => $descripdepo)
+                            @foreach($depositoValues as $indexDep => $descripdepo)
                                 <th width="13%" class="text-center">
                                         <span class="deposito-tooltip" title="{{ $descripdepo }}">
                                             {{ Str::limit($descripdepo, 14) }}
@@ -452,7 +452,7 @@
                             $tantos = 0;
                             $totalcost = 0;
                             $existdepstt = 0;
-                            $arraycantdep = array_fill(0, count($deposito), 0);
+                            $arraycantdep = array_fill(0, count($depositoValues), 0);
                         @endphp
 
                         @forelse($productos as $index => $producto)
@@ -470,11 +470,11 @@
                                     {{ $producto['descrip2'] ?? '-' }}
                                 </td>
 
-                                @foreach($deposito as $indexdep => $descripdepo)
+                                @foreach($depositoKeys as $depIndex => $depKey)
                                     @php
-                                        $cantidad = $existencias[$index][$indexdep] ?? 0;
+                                        $cantidad = $existencias[$index][$depKey] ?? 0;
                                         if($cantidad > 0) {
-                                            $arraycantdep[$indexdep] += $cantidad;
+                                            $arraycantdep[$depIndex] += $cantidad;
                                             $existdeps += $cantidad;
                                             $existdepstt += $cantidad;
                                             $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
@@ -506,7 +506,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ count($deposito) + 4 }}" align="center" style="padding: 40px 0;">
+                                <td colspan="{{ count($depositoValues) + 4 }}" align="center" style="padding: 40px 0;">
                                     <i class="bi bi-inbox" style="font-size: 48px; color: #ccc;"></i>
                                     <h5 style="color: #6c757d; margin-top: 10px;">No hay productos con existencias</h5>
                                     <p style="color: #999; font-size: 0.85rem;">No se encontraron productos en esta categoría</p>
@@ -520,10 +520,10 @@
                                 <td colspan="3" align="right">
                                     <strong>TOTALES</strong>
                                 </td>
-                                @foreach($deposito as $indexdep => $descripdepo)
+                                @foreach($arraycantdep as $totalDep)
                                     <td align="center" class="total-unds-footer">
-                                        @if(isset($arraycantdep[$indexdep]) && $arraycantdep[$indexdep] > 0)
-                                            {{ number_format($arraycantdep[$indexdep], 0, ',', '.') }}
+                                        @if($totalDep > 0)
+                                            {{ number_format($totalDep, 0, ',', '.') }}
                                         @else
                                             <span style="color: rgba(255,255,255,0.4);">-</span>
                                         @endif

@@ -1305,9 +1305,7 @@ class SaprodController extends Controller
         $busqueda = $request->busqueda ?? '';
         $len      = strlen($codalte);
 
-        // ==========================================
-        // CONSTRUIR BÚSQUEDA
-        // ==========================================
+        // Construir búsqueda
         $cadena = '';
         if(!empty($busqueda)) {
             $busqueda = str_replace("\"", "", $busqueda);
@@ -1328,9 +1326,7 @@ class SaprodController extends Controller
             }
         }
 
-        // ==========================================
-        // CONSULTA PRINCIPAL
-        // ==========================================
+        // Consulta
         $sqlcostoinv = "SELECT a.preciodant, a.preciodpro, a.preciod, a.descrip, a.codprod, e.codubic, b.existen, e.descrip as deposito
                     FROM saprod a
                     INNER JOIN saexis b ON a.codprod = b.codprod
@@ -1348,15 +1344,11 @@ class SaprodController extends Controller
 
         $listado = DB::select($sqlcostoinv);
 
-        // ==========================================
-        // PROCESAR DATOS
-        // ==========================================
         $productos   = [];
         $deposito    = [];
         $existencias = [];
 
         foreach($listado as $producto){
-            // Agrupar por producto
             if(!isset($productos[$producto->codprod])) {
                 $productos[$producto->codprod] = [
                     'descrip'    => $producto->descrip,
@@ -1366,12 +1358,10 @@ class SaprodController extends Controller
                 ];
             }
 
-            // Registrar depósito
             if(!isset($deposito[$producto->codubic])) {
                 $deposito[$producto->codubic] = $producto->deposito;
             }
 
-            // Registrar existencia
             if(!isset($existencias[$producto->codprod])) {
                 $existencias[$producto->codprod] = [];
             }
@@ -1379,31 +1369,28 @@ class SaprodController extends Controller
         }
 
         // ==========================================
-        // CALCULAR TOTALES PARA LA VISTA
+        // REINDEXAR DEPÓSITOS PARA EVITAR ERRORES
         // ==========================================
+        $depositoValues = array_values($deposito); // Solo valores
+        $depositoKeys = array_keys($deposito);     // Solo keys (códigos)
+
+        // Calcular totales
         $totalcost = 0;
         $existdepstt = 0;
-
         foreach($productos as $codprod => $producto) {
             if(isset($existencias[$codprod])) {
-                foreach($existencias[$codprod] as $depositoKey => $cantidad) {
+                foreach($existencias[$codprod] as $cantidad) {
                     $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
                     $existdepstt += $cantidad;
                 }
             }
         }
 
-        // ==========================================
-        // ORDENAR DEPÓSITOS (opcional)
-        // ==========================================
-        ksort($deposito);
-
-        // ==========================================
-        // RETORNAR VISTA CON TODOS LOS DATOS
-        // ==========================================
         return view('productosallinstsancias', compact(
             'productos',
-            'deposito',
+            'deposito',          // Original (con keys)
+            'depositoKeys',      // Solo keys
+            'depositoValues',    // Solo valores reindexados
             'existencias',
             'totalcost',
             'existdepstt'
