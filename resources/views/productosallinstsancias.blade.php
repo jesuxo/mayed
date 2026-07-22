@@ -409,7 +409,7 @@
         <div class="card card-existencias">
             <div class="card-header align-items-center d-flex justify-content-between flex-wrap">
 
-                <div class="d-flex gap-2 flex-wrap">
+                <div class="d-flex gap-2 flex-wrap" style="margin-bottom: 20px">
                     <span class="badge bg-primary">
                         <i class="bi bi-tag"></i> {{ count($productos) }} Productos
                     </span>
