@@ -3,15 +3,13 @@
     /* ESTILOS MODERNOS PARA EXISTENCIAS POR DEPÓSITO */
     /* ========================================== */
     .card-existencias {
-        border: none;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         border-radius: 12px;
         overflow: hidden;
     }
 
     .card-existencias .card-header {
         color: #fff;
-        padding: 16px 24px;
+        padding: 0px;
         border-bottom: none;
     }
 
@@ -424,7 +422,7 @@
                 </div>
             </div>
 
-            <div class="card-body">
+            <div class="card-body" style="margin: 0px; padding: 0px">
                 <div class="scroll-existencias" style="max-height: 490px; overflow: auto;">
                     <table class="table-existencias table table-borderless table-centered align-middle table-nowrap mb-0">
                         <thead>
