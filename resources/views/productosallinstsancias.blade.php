@@ -179,13 +179,6 @@
         font-size: 0.95rem;
     }
 
-    .total-costo-footer {
-        font-weight: 700;
-        color: #ffd700;
-        text-align: right;
-        font-size: 0.95rem;
-    }
-
     .celda-vacia {
         color: #dee2e6;
         font-size: 0.7rem;
@@ -211,525 +204,324 @@
         background: #0056a7;
     }
 
-    /* Resumen rápido */
-    .resumen-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-
-    .resumen-item {
-        background: #fff;
-        border-radius: 10px;
-        padding: 12px 16px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-        border: 1px solid #e9ecef;
-        text-align: center;
-        transition: all 0.2s ease;
-    }
-
-    .resumen-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-
-    .resumen-item .label {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        color: #6c757d;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        display: block;
-    }
-
-    .resumen-item .value {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-top: 2px;
-    }
-
-    .resumen-item .value.primary { color: #0072c5; }
-    .resumen-item .value.success { color: #28a745; }
-    .resumen-item .value.warning { color: #ffc107; }
-    .resumen-item .value.danger { color: #dc3545; }
-
-    /* Botones de acción */
-    .btn-accion {
-        padding: 5px 14px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        border: none;
-        transition: all 0.2s ease;
-        background: rgba(255,255,255,0.15);
-        color: #fff;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .btn-accion:hover {
-        background: rgba(255,255,255,0.25);
-        color: #fff;
-        transform: translateY(-1px);
-    }
-
-    /* Depósito nombre abreviado con tooltip */
-    .deposito-tooltip {
-        cursor: help;
-        border-bottom: 1px dashed rgba(255,255,255,0.3);
-        display: inline-block;
-    }
-
     /* ========================================== */
-    /* FILTRO DE DEPÓSITOS */
+    /* FILTRO DE DEPÓSITOS - DENTRO DEL MODAL */
     /* ========================================== */
-    .deposito-filter {
+    .deposito-filter-modal {
         background: #f8f9fa;
         border-radius: 10px;
-        padding: 12px 16px;
-        margin-bottom: 15px;
+        padding: 10px 14px;
+        margin: 0 0 12px 0;
         border: 1px solid #e9ecef;
     }
 
-    .deposito-filter .filter-label {
-        font-size: 0.8rem;
+    .deposito-filter-modal .filter-label {
+        font-size: 0.75rem;
         font-weight: 600;
         color: #2c3e50;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
         display: block;
     }
 
-    .deposito-filter .deposito-check {
+    .deposito-filter-modal .deposito-check {
         display: inline-flex;
         align-items: center;
-        margin-right: 10px;
-        margin-bottom: 5px;
+        margin-right: 8px;
+        margin-bottom: 4px;
         cursor: pointer;
-        padding: 4px 12px;
+        padding: 3px 10px;
         border-radius: 20px;
         background: #fff;
         border: 1px solid #dee2e6;
         transition: all 0.2s ease;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
 
-    .deposito-filter .deposito-check:hover {
+    .deposito-filter-modal .deposito-check:hover {
         background: #e9ecef;
     }
 
-    .deposito-filter .deposito-check input[type="checkbox"] {
-        margin-right: 6px;
+    .deposito-filter-modal .deposito-check input[type="checkbox"] {
+        margin-right: 5px;
         accent-color: #0072c5;
-        width: 14px;
-        height: 14px;
+        width: 13px;
+        height: 13px;
         cursor: pointer;
     }
 
-    .deposito-filter .deposito-check.checked {
+    .deposito-filter-modal .deposito-check.checked {
         background: #cce5ff;
         border-color: #0072c5;
     }
 
-    .deposito-filter .btn-aplicar {
+    .deposito-filter-modal .btn-aplicar-modal {
         background: #0072c5;
         color: #fff;
         border: none;
-        padding: 5px 20px;
+        padding: 4px 16px;
         border-radius: 20px;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
-    .deposito-filter .btn-aplicar:hover {
+    .deposito-filter-modal .btn-aplicar-modal:hover {
         background: #0056a7;
     }
 
-    .deposito-filter .btn-seleccionar-todos {
-        background: #6c757d;
+    .deposito-filter-modal .btn-seleccionar-todos-modal {
         color: #fff;
         border: none;
-        padding: 5px 15px;
+        padding: 4px 12px;
         border-radius: 20px;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         cursor: pointer;
         transition: all 0.2s ease;
-        margin-right: 5px;
+        margin-right: 4px;
     }
 
-    .deposito-filter .btn-seleccionar-todos:hover {
-        background: #5a6268;
-    }
-
-    .deposito-filter .btn-seleccionar-todos.verde {
+    .deposito-filter-modal .btn-seleccionar-todos-modal.verde {
         background: #28a745;
     }
 
-    .deposito-filter .btn-seleccionar-todos.verde:hover {
+    .deposito-filter-modal .btn-seleccionar-todos-modal.verde:hover {
         background: #218838;
     }
 
-    .deposito-filter .btn-seleccionar-todos.rojo {
+    .deposito-filter-modal .btn-seleccionar-todos-modal.rojo {
         background: #dc3545;
     }
 
-    .deposito-filter .btn-seleccionar-todos.rojo:hover {
+    .deposito-filter-modal .btn-seleccionar-todos-modal.rojo:hover {
         background: #c82333;
     }
 
-    .deposito-filter .badge-depositos {
+    .deposito-filter-modal .badge-depositos-modal {
         background: #0072c5;
         color: #fff;
-        padding: 2px 10px;
-        border-radius: 12px;
-        font-size: 0.7rem;
-        margin-left: 8px;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-size: 0.65rem;
+        margin-left: 5px;
     }
 
-    /* Responsive */
+    .deposito-filter-modal .filter-actions {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+    }
+
+    /* Responsive para el filtro dentro del modal */
     @media (max-width: 768px) {
-        .table-existencias {
-            font-size: 0.7rem;
-        }
-
-        .table-existencias thead th,
-        .table-existencias tbody td {
-            padding: 4px 4px;
-        }
-
-        .table-existencias thead th:first-child,
-        .table-existencias tbody td:first-child {
-            padding-left: 8px;
-        }
-
-        .table-existencias thead th:last-child,
-        .table-existencias tbody td:last-child {
-            padding-right: 8px;
-        }
-
-        .badge-cantidad {
+        .deposito-filter-modal .deposito-check {
+            font-size: 0.6rem;
             padding: 2px 6px;
-            font-size: 0.65rem;
-            min-width: 20px;
+            margin-right: 4px;
         }
 
-        .resumen-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-
-        .resumen-item {
-            padding: 8px 10px;
-        }
-
-        .resumen-item .value {
-            font-size: 1rem;
-        }
-
-        .card-existencias .card-header {
-            padding: 12px 16px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .card-existencias .card-header h4 {
-            font-size: 0.95rem;
-        }
-
-        .btn-accion {
+        .deposito-filter-modal .btn-aplicar-modal,
+        .deposito-filter-modal .btn-seleccionar-todos-modal {
+            font-size: 0.6rem;
             padding: 3px 10px;
-            font-size: 0.65rem;
-        }
-
-        .deposito-filter {
-            padding: 8px 10px;
-        }
-
-        .deposito-filter .deposito-check {
-            font-size: 0.65rem;
-            padding: 2px 8px;
-            margin-right: 5px;
-        }
-
-        .deposito-filter .btn-aplicar,
-        .deposito-filter .btn-seleccionar-todos {
-            font-size: 0.65rem;
-            padding: 3px 12px;
-        }
-    }
-
-    /* Modo impresión */
-    @media print {
-        .card-existencias {
-            box-shadow: none !important;
-            border: 1px solid #ddd !important;
-        }
-
-        .card-existencias .card-header {
-            background: #0072c5 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        .table-existencias thead th {
-            background: #0072c5 !important;
-            color: #fff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        .table-existencias .fila-total {
-            background: #0072c5 !important;
-            color: #fff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        .badge-cantidad.positivo {
-            background: #d4edda !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        .badge-cantidad.alto {
-            background: #cce5ff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        .badge-cantidad.muy-alto {
-            background: #fff3cd !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        .resumen-item {
-            border: 1px solid #ddd !important;
-        }
-
-        .btn-accion {
-            display: none !important;
-        }
-
-        .scroll-existencias {
-            max-height: none !important;
-            overflow: visible !important;
-        }
-
-        .deposito-filter {
-            display: none !important;
         }
     }
 </style>
 
-<div class="row">
-    <div class="col-lg-12">
-        <div class="card card-existencias">
-            <div class="card-header align-items-center d-flex justify-content-between flex-wrap">
-                <div class="d-flex gap-2 flex-wrap" style="margin-bottom: 20px">
-                    <span class="badge bg-primary">
-                        <i class="bi bi-tag"></i> {{ count($productos) }} Productos
+<div class="card card-existencias">
+    <div class="card-body" style="padding: 0px;">
+        <!-- ========================================== -->
+        <!-- FILTRO DE DEPÓSITOS DENTRO DEL MODAL -->
+        <!-- ========================================== -->
+        @if(count($deposito) > 0)
+            <div class="deposito-filter-modal">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                    <span class="filter-label">
+                        <i class="bi bi-funnel"></i> Filtrar por Depósito:
+                        <span class="badge-depositos-modal" id="contadorSeleccionadosModal">
+                            {{ count($depositoValues) }} seleccionados
+                        </span>
                     </span>
-                    <span class="badge bg-success">
-                        <i class="bi bi-boxes"></i>
-                        <span id="totalDepositos">{{ count($depositoValues) }}</span> Depósitos
-                    </span>
-                    <span class="badge bg-warning text-dark" id="htmlunds">
-                        <i class="bi bi-box"></i> {{ $existdepstt+0 }} Unds
-                    </span>
-                </div>
-            </div>
-
-            <!-- ========================================== -->
-            <!-- FILTRO DE DEPÓSITOS -->
-            <!-- ========================================== -->
-            <div class="card-body" style="padding: 0px 16px; padding-top: 10px;">
-                <div class="deposito-filter">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        <div>
-                            <span class="filter-label">
-                                <i class="bi bi-funnel"></i> Filtrar por Depósito:
-                                <span class="badge-depositos" id="contadorSeleccionados">
-                                    {{ count($depositoValues) }} seleccionados
-                                </span>
-                            </span>
-                            <div id="depositosCheckboxes">
-                                @foreach($deposito as $key => $nombre)
-                                    @php
-                                        $checked = in_array($key, $depositosSeleccionados ?? array_keys($deposito));
-                                    @endphp
-                                    <label class="deposito-check {{ $checked ? 'checked' : '' }}">
-                                        <input type="checkbox"
-                                               class="deposito-checkbox"
-                                               value="{{ $key }}"
-                                            {{ $checked ? 'checked' : '' }}>
-                                        {{ Str::limit($nombre, 20) }}
-                                    </label>
-                                @endforeach
-                            </div>
+                        <div id="depositosCheckboxesModal">
+                            @foreach($deposito as $key => $nombre)
+                                @php
+                                    $checked = in_array($key, $depositosSeleccionados ?? array_keys($deposito));
+                                @endphp
+                                <label class="deposito-check {{ $checked ? 'checked' : '' }}">
+                                    <input type="checkbox"
+                                           class="deposito-checkbox-modal"
+                                           value="{{ $key }}"
+                                        {{ $checked ? 'checked' : '' }}>
+                                    {{ Str::limit($nombre, 16) }}
+                                </label>
+                            @endforeach
                         </div>
-                        <div class="d-flex gap-2 flex-wrap mt-2 mt-md-0">
-                            <button class="btn-seleccionar-todos verde" onclick="seleccionarTodos()">
-                                <i class="bi bi-check-all"></i> Todos
-                            </button>
-                            <button class="btn-seleccionar-todos rojo" onclick="deseleccionarTodos()">
-                                <i class="bi bi-x"></i> Ninguno
-                            </button>
-                            <button class="btn-aplicar" onclick="aplicarFiltro()">
-                                <i class="bi bi-check2"></i> Aplicar
-                            </button>
-                        </div>
+                    </div>
+                    <div class="filter-actions mt-1 mt-md-0">
+                        <button class="btn-seleccionar-todos-modal verde" onclick="seleccionarTodosModal()">
+                            <i class="bi bi-check-all"></i> Todos
+                        </button>
+                        <button class="btn-seleccionar-todos-modal rojo" onclick="deseleccionarTodosModal()">
+                            <i class="bi bi-x"></i> Ninguno
+                        </button>
+                        <button class="btn-aplicar-modal" onclick="aplicarFiltroModal()">
+                            <i class="bi bi-check2"></i> Aplicar
+                        </button>
                     </div>
                 </div>
             </div>
+        @endif
 
-            <!-- Tabla -->
-            <div class="card-body" style="margin: 0px; padding: 0px 16px 16px 16px;">
-                <div class="scroll-existencias" style="max-height: 490px; overflow: auto;">
-                    <table class="table-existencias table table-borderless table-centered align-middle table-nowrap mb-0" id="tablaExistencias">
-                        <thead>
-                        <tr>
-                            <th width="4%" class="text-center">CÓD</th>
-                            <th width="20%">PRODUCTO</th>
-                            <th width="9%" class="text-center">REF</th>
-                            @foreach($depositoValues as $indexDep => $descripdepo)
-                                <th width="13%" class="text-center">
-                                        <span class="deposito-tooltip" title="{{ $descripdepo }}">
-                                            {{ Str::limit($descripdepo, 14) }}
-                                        </span>
-                                </th>
-                            @endforeach
-                            <th width="9%" class="text-center">UNDS</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @php
-                            $tantos = 0;
-                            $totalcost = 0;
-                            $existdepstt = 0;
-                            $arraycantdep = array_fill(0, count($depositoValues), 0);
-                        @endphp
+        <!-- Tabla -->
+        <div class="scroll-existencias" style="max-height: 490px; overflow: auto;">
+            <table class="table-existencias table table-borderless table-centered align-middle table-nowrap mb-0" id="tablaExistenciasModal">
+                <thead>
+                <tr>
+                    <th width="4%" class="text-center">CÓD</th>
+                    <th width="20%">PRODUCTO</th>
+                    <th width="9%" class="text-center">REF</th>
+                    @foreach($depositoValues as $indexDep => $descripdepo)
+                        <th width="13%" class="text-center">
+                                <span class="deposito-tooltip" title="{{ $descripdepo }}">
+                                    {{ Str::limit($descripdepo, 12) }}
+                                </span>
+                        </th>
+                    @endforeach
+                    <th width="9%" class="text-center">UNDS</th>
+                </tr>
+                </thead>
+                <tbody>
+                @php
+                    $tantos = 0;
+                    $totalcost = 0;
+                    $existdepstt = 0;
+                    $arraycantdep = array_fill(0, count($depositoValues), 0);
+                @endphp
 
-                        @forelse($productos as $index => $producto)
+                @forelse($productos as $index => $producto)
+                    @php
+                        $tantos++;
+                        $bgcolor = ($tantos % 2 == 0) ? '#ffffff' : '#f8f9fa';
+                        $existdeps = 0;
+                        $tieneStock = false;
+                    @endphp
+
+                    <tr bgcolor="{{ $bgcolor }}" style="color:#2c3e50;">
+                        <td align="left" class="codigo-prod">{{ $index }}</td>
+                        <td align="left" class="nombre-prod">{{ $producto['descrip'] ?? '' }}</td>
+                        <td align="left" class="descrip2-prod">
+                            {{ $producto['descrip2'] ?? '-' }}
+                        </td>
+
+                        @foreach($depositoKeys as $depIndex => $depKey)
                             @php
-                                $tantos++;
-                                $bgcolor = ($tantos % 2 == 0) ? '#ffffff' : '#f8f9fa';
-                                $existdeps = 0;
-                                $tieneStock = false;
+                                $cantidad = $existenciasFiltradas[$index][$depKey] ?? 0;
+                                if($cantidad > 0) {
+                                    $arraycantdep[$depIndex] += $cantidad;
+                                    $existdeps += $cantidad;
+                                    $existdepstt += $cantidad;
+                                    $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
+                                    $tieneStock = true;
+                                }
                             @endphp
-
-                            <tr bgcolor="{{ $bgcolor }}" style="color:#2c3e50;">
-                                <td align="left" class="codigo-prod">{{ $index }}</td>
-                                <td align="left" class="nombre-prod">{{ $producto['descrip'] ?? '' }}</td>
-                                <td align="left" class="descrip2-prod">
-                                    {{ $producto['descrip2'] ?? '-' }}
-                                </td>
-
-                                @foreach($depositoKeys as $depIndex => $depKey)
+                            <td align="center">
+                                @if($cantidad > 0)
                                     @php
-                                        $cantidad = $existenciasFiltradas[$index][$depKey] ?? 0;
-                                        if($cantidad > 0) {
-                                            $arraycantdep[$depIndex] += $cantidad;
-                                            $existdeps += $cantidad;
-                                            $existdepstt += $cantidad;
-                                            $totalcost += $cantidad * ($producto['preciodpro'] ?? 0);
-                                            $tieneStock = true;
-                                        }
+                                        $claseBadge = 'positivo';
+                                        if($cantidad >= 50) $claseBadge = 'muy-alto';
+                                        elseif($cantidad >= 20) $claseBadge = 'alto';
                                     @endphp
-                                    <td align="center">
-                                        @if($cantidad > 0)
-                                            @php
-                                                $claseBadge = 'positivo';
-                                                if($cantidad >= 50) $claseBadge = 'muy-alto';
-                                                elseif($cantidad >= 20) $claseBadge = 'alto';
-                                            @endphp
-                                            <span class="badge-cantidad {{ $claseBadge }}">
-                                                    {{ number_format($cantidad, 0, ',', '.') }}
-                                                </span>
-                                        @else
-                                            <span class="celda-vacia">-</span>
-                                        @endif
-                                    </td>
-                                @endforeach
+                                    <span class="badge-cantidad {{ $claseBadge }}">
+                                            {{ number_format($cantidad, 0, ',', '.') }}
+                                        </span>
+                                @else
+                                    <span class="celda-vacia">-</span>
+                                @endif
+                            </td>
+                        @endforeach
 
-                                <td align="center" class="total-unds">
-                                    {{ number_format($existdeps, 0, ',', '.') }}
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="{{ count($depositoValues) + 3 }}" align="center" style="padding: 40px 0;">
-                                    <i class="bi bi-inbox" style="font-size: 48px; color: #ccc;"></i>
-                                    <h5 style="color: #6c757d; margin-top: 10px;">No hay productos con existencias</h5>
-                                    <p style="color: #999; font-size: 0.85rem;">No se encontraron productos en esta categoría</p>
-                                </td>
-                            </tr>
-                        @endforelse
+                        <td align="center" class="total-unds">
+                            {{ number_format($existdeps, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="{{ count($depositoValues) + 3 }}" align="center" style="padding: 40px 0;">
+                            <i class="bi bi-inbox" style="font-size: 48px; color: #ccc;"></i>
+                            <h5 style="color: #6c757d; margin-top: 10px;">No hay productos con existencias</h5>
+                            <p style="color: #999; font-size: 0.85rem;">No se encontraron productos en esta categoría</p>
+                        </td>
+                    </tr>
+                @endforelse
 
-                        @if(count($productos) > 0)
-                            <!-- FILA DE TOTALES -->
-                            <tr class="fila-total">
-                                <td colspan="3" align="right">
-                                    <strong>TOTALES</strong>
-                                </td>
-                                @foreach($arraycantdep as $totalDep)
-                                    <td align="center" class="total-unds-footer">
-                                        @if($totalDep > 0)
-                                            {{ number_format($totalDep, 0, ',', '.') }}
-                                        @else
-                                            <span style="color: rgba(255,255,255,0.4);">-</span>
-                                        @endif
-                                    </td>
-                                @endforeach
-                                <td align="center" class="total-unds-footer">
-                                    <strong>{{ $existdepstt+0 }}</strong>
-                                </td>
-                            </tr>
-                        @endif
-                        </tbody>
-                    </table>
-                </div>
+                @if(count($productos) > 0)
+                    <!-- FILA DE TOTALES -->
+                    <tr class="fila-total">
+                        <td colspan="3" align="right">
+                            <strong>TOTALES</strong>
+                        </td>
+                        @foreach($arraycantdep as $totalDep)
+                            <td align="center" class="total-unds-footer">
+                                @if($totalDep > 0)
+                                    {{ number_format($totalDep, 0, ',', '.') }}
+                                @else
+                                    <span style="color: rgba(255,255,255,0.4);">-</span>
+                                @endif
+                            </td>
+                        @endforeach
+                        <td align="center" class="total-unds-footer">
+                            <strong>{{ $existdepstt+0 }}</strong>
+                        </td>
+                    </tr>
+                @endif
+                </tbody>
+            </table>
+        </div>
 
-                <div class="d-flex justify-content-between align-items-center mt-2 text-muted" style="font-size: 0.7rem;">
-                    <span>
-                        <i class="bi bi-info-circle me-1"></i>
-                        {{ count($productos) }} productos ·
-                        <span id="footerDepositos">{{ count($depositoValues) }}</span> depósitos
-                    </span>
-                    <span>
-                        Última actualización: {{ now()->format('d/m/Y H:i') }}
-                    </span>
-                </div>
-            </div>
+        <div class="d-flex justify-content-between align-items-center mt-2 text-muted" style="font-size: 0.7rem; padding: 0 4px;">
+            <span>
+                <i class="bi bi-info-circle me-1"></i>
+                {{ count($productos) }} productos ·
+                <span id="footerDepositosModal">{{ count($depositoValues) }}</span> depósitos
+            </span>
+            <span>
+                <i class="bi bi-clock me-1"></i>
+                {{ now()->format('H:i') }}
+            </span>
         </div>
     </div>
 </div>
 
 <script>
     // ==========================================
-    // FILTRO DE DEPÓSITOS
+    // FILTRO DE DEPÓSITOS - DENTRO DEL MODAL
     // ==========================================
 
+    // Variables para almacenar los parámetros actuales
+    var modalCodalte = '{{ $codalte ?? '' }}';
+    var modalBusqueda = '{{ $busqueda ?? '' }}';
+
     // Actualizar contador de seleccionados
-    function actualizarContador() {
-        var checkboxes = document.querySelectorAll('.deposito-checkbox:checked');
-        var total = document.querySelectorAll('.deposito-checkbox').length;
-        document.getElementById('contadorSeleccionados').textContent = checkboxes.length + ' seleccionados';
+    function actualizarContadorModal() {
+        var checkboxes = document.querySelectorAll('.deposito-checkbox-modal:checked');
+        var total = document.querySelectorAll('.deposito-checkbox-modal').length;
+        var contador = document.getElementById('contadorSeleccionadosModal');
+        if (contador) {
+            contador.textContent = checkboxes.length + ' seleccionados';
+        }
 
         // Actualizar badges
-        document.getElementById('totalDepositos').textContent = checkboxes.length;
-        document.getElementById('footerDepositos').textContent = checkboxes.length;
+        var totalDep = document.getElementById('totalDepositosModal');
+        var footerDep = document.getElementById('footerDepositosModal');
+        if (totalDep) totalDep.textContent = checkboxes.length;
+        if (footerDep) footerDep.textContent = checkboxes.length;
 
         // Marcar/desmarcar estilo de los labels
         document.querySelectorAll('.deposito-check').forEach(function(label) {
-            var checkbox = label.querySelector('.deposito-checkbox');
-            if(checkbox.checked) {
+            var checkbox = label.querySelector('.deposito-checkbox-modal');
+            if (checkbox && checkbox.checked) {
                 label.classList.add('checked');
             } else {
                 label.classList.remove('checked');
@@ -738,71 +530,88 @@
     }
 
     // Seleccionar todos
-    function seleccionarTodos() {
-        document.querySelectorAll('.deposito-checkbox').forEach(function(cb) {
+    function seleccionarTodosModal() {
+        document.querySelectorAll('.deposito-checkbox-modal').forEach(function(cb) {
             cb.checked = true;
         });
-        actualizarContador();
+        actualizarContadorModal();
     }
 
     // Deseleccionar todos
-    function deseleccionarTodos() {
-        document.querySelectorAll('.deposito-checkbox').forEach(function(cb) {
+    function deseleccionarTodosModal() {
+        document.querySelectorAll('.deposito-checkbox-modal').forEach(function(cb) {
             cb.checked = false;
         });
-        actualizarContador();
+        actualizarContadorModal();
     }
 
-    // Aplicar filtro
-    function aplicarFiltro() {
-        var checkboxes = document.querySelectorAll('.deposito-checkbox:checked');
+    // Aplicar filtro - recarga el contenido del modal
+    function aplicarFiltroModal() {
+        var checkboxes = document.querySelectorAll('.deposito-checkbox-modal:checked');
         var depositos = [];
         checkboxes.forEach(function(cb) {
             depositos.push(cb.value);
         });
 
-        if(depositos.length === 0) {
+        if (depositos.length === 0) {
             alert('Debe seleccionar al menos un depósito para visualizar.');
             return;
         }
 
-        // Obtener parámetros actuales de la URL
-        var urlParams = new URLSearchParams(window.location.search);
-        var codalte = urlParams.get('codalte');
-        var busqueda = urlParams.get('busqueda') || '';
+        // Mostrar loading
+        var content = document.getElementById('contentviewprodcodalte');
+        if (content) {
+            content.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Actualizando datos...</p>
+                </div>
+            `;
+        }
 
-        // Construir nueva URL
-        var url = window.location.pathname + '?codalte=' + codalte + '&busqueda=' + encodeURIComponent(busqueda) + '&depositos=' + JSON.stringify(depositos);
-
-        // Redirigir con los depósitos seleccionados
-        window.location.href = url;
+        // Llamar al método del controlador con los depósitos seleccionados
+        $.ajax({
+            type: 'post',
+            data: {
+                codalte: modalCodalte,
+                busqueda: modalBusqueda,
+                depositos: JSON.stringify(depositos)
+            },
+            url: '/saprod/viewprodinstsanciascodalte',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                if (content) {
+                    content.innerHTML = response;
+                    // Re-inicializar eventos del filtro
+                    inicializarFiltroModal();
+                }
+            },
+            error: function() {
+                if (content) {
+                    content.innerHTML = `
+                        <div class="alert alert-danger text-center">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Error al actualizar los datos. Por favor, intente nuevamente.
+                        </div>
+                    `;
+                }
+            }
+        });
     }
 
-    // Evento para los checkboxes (actualizar contador en tiempo real)
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.deposito-checkbox').forEach(function(cb) {
-            cb.addEventListener('change', actualizarContador);
+    // Inicializar eventos del filtro (se llama después de recargar el contenido)
+    function inicializarFiltroModal() {
+        // Evento para los checkboxes
+        document.querySelectorAll('.deposito-checkbox-modal').forEach(function(cb) {
+            cb.addEventListener('change', actualizarContadorModal);
         });
 
         // Inicializar contador
-        actualizarContador();
-
-        // Resaltar filas con stock
-        var rows = document.querySelectorAll('.table-existencias tbody tr:not(.fila-total)');
-        rows.forEach(function(row) {
-            var celdas = row.querySelectorAll('td');
-            var tieneStock = false;
-            for(var i = 3; i < celdas.length - 1; i++) {
-                var texto = celdas[i].textContent.trim();
-                if(texto !== '-' && texto !== '') {
-                    tieneStock = true;
-                    break;
-                }
-            }
-            if(tieneStock) {
-                row.style.borderLeft = '3px solid #28a745';
-            }
-        });
+        actualizarContadorModal();
 
         // Inicializar tooltips
         if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
@@ -811,84 +620,37 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         }
+
+        // Resaltar filas con stock
+        var rows = document.querySelectorAll('.table-existencias tbody tr:not(.fila-total)');
+        rows.forEach(function(row) {
+            var celdas = row.querySelectorAll('td');
+            var tieneStock = false;
+            for (var i = 3; i < celdas.length - 1; i++) {
+                var texto = celdas[i].textContent.trim();
+                if (texto !== '-' && texto !== '') {
+                    tieneStock = true;
+                    break;
+                }
+            }
+            if (tieneStock) {
+                row.style.borderLeft = '3px solid #28a745';
+            }
+        });
+    }
+
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        inicializarFiltroModal();
     });
 
-    // ==========================================
-    // EXPORTAR A EXCEL
-    // ==========================================
-    function exportarExcel() {
-        var table = document.querySelector('.table-existencias');
-        var html = table.outerHTML;
-
-        var titulo = 'EXISTENCIAS POR DEPÓSITO';
-        var fecha = new Date().toLocaleDateString('es-VE');
-
-        var styles = `
-            <style>
-                th { background: #0072c5 !important; color: #fff !important; font-weight: bold; }
-                .fila-total { background: #0072c5 !important; color: #fff !important; font-weight: bold; }
-                .badge-cantidad.positivo { background: #d4edda !important; }
-                .badge-cantidad.alto { background: #cce5ff !important; }
-                .badge-cantidad.muy-alto { background: #fff3cd !important; }
-                .codigo-prod { font-weight: bold; color: #0072c5; }
-                .total-unds { font-weight: bold; color: #0072c5; }
-                td { border: 1px solid #ddd; padding: 4px 6px; }
-                .celda-vacia { color: #ccc; }
-            </style>
-        `;
-
-        var fullHtml = `
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${titulo}</title>
-                    ${styles}
-                </head>
-                <body>
-                    <h2>${titulo}</h2>
-                    <p>Fecha: ${fecha}</p>
-                    ${html}
-                </body>
-            </html>
-        `;
-
-        var blob = new Blob([fullHtml], { type: 'application/vnd.ms-excel' });
-        var link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'existencias_deposito_' + new Date().toISOString().slice(0,10) + '.xls';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    // ==========================================
-    // TOGGLE RESUMEN
-    // ==========================================
-    function toggleResumen() {
-        var container = document.getElementById('resumenContainer');
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
-        }
-    }
-
-    // ==========================================
-    // TRUNCAR TEXTO (fallback)
-    // ==========================================
-    function truncateText(text, maxLength) {
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength) + '...';
-    }
-
-    // ==========================================
-    // RECARGAR CON FILTRO DESDE URL (para botones de navegación)
-    // ==========================================
-    function recargarConFiltro(depositos) {
-        var urlParams = new URLSearchParams(window.location.search);
-        var codalte = urlParams.get('codalte');
-        var busqueda = urlParams.get('busqueda') || '';
-        var url = window.location.pathname + '?codalte=' + codalte + '&busqueda=' + encodeURIComponent(busqueda) + '&depositos=' + JSON.stringify(depositos);
-        window.location.href = url;
-    }
+    // También inicializar cuando el modal se abre completamente
+    $(document).ready(function() {
+        // Cuando el modal se muestra, reinicializar el filtro
+        $('#viewprodcodaltemodal').on('shown.bs.modal', function() {
+            setTimeout(function() {
+                inicializarFiltroModal();
+            }, 300);
+        });
+    });
 </script>
