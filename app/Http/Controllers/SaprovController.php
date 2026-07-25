@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Cwcxcprv;
 use App\Models\Cwviajemoto;
+use App\Models\Sacomercial;
 use App\Models\Sainsta;
+use App\Models\Saprodsucursal;
 use App\Models\Saprov;
 use App\Models\Saprovsucursal;
 use App\Models\Saprod;
@@ -195,6 +197,152 @@ class SaprovController extends Controller
             'compras',
             'sucursales' // Agregar esto
         ));
+    }
+
+    /**
+     * Actualización rápida de producto desde el panel de proveedores
+     */
+    public function quickUpdateProducto(Request $request)
+    {
+        $comercial = session('comercialid');
+        $comercialModel = Sacomercial::find($comercial);
+
+        if (!$comercialModel) return;
+
+        $match = $comercialModel->match;
+
+        try {
+            $request->validate([
+                'id'         => 'required|exists:saprod,id',
+                'descrip'    => 'required|string|max:255',
+                'refere'     => 'nullable|string|max:50',
+                'preciodant' => 'nullable|numeric|min:0',
+                'preciodpro' => 'nullable|numeric|min:0',
+                'preciod'    => 'nullable|numeric|min:0',
+                'costod'     => 'nullable|numeric|min:0',
+                'costod2'    => 'nullable|numeric|min:0',
+                'costod3'    => 'nullable|numeric|min:0',
+            ]);
+
+            $producto = Saprod::find($request->id);
+
+            if (!$producto) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Producto no encontrado'
+                ], 404);
+            }
+
+            $codprod           = $producto->codprod;
+            $producto->descrip = $request->descrip;
+            $producto->refere  = $request->refere;
+
+            // Precios (costo)
+            if ($request->has('preciodant')) {
+                $producto->preciodant = $this->formatNumber($request->preciodant);
+            }
+            if ($request->has('preciodpro')) {
+                $producto->preciodpro = $this->formatNumber($request->preciodpro);
+            }
+            if ($request->has('preciod')) {
+                $producto->preciod = $this->formatNumber($request->preciod);
+            }
+
+            // Precios (venta)
+            if ($request->has('costod')) {
+                $producto->costod = $this->formatNumber($request->costod);
+            }
+            if ($request->has('costod2')) {
+                $producto->costod2 = $this->formatNumber($request->costod2);
+            }
+            if ($request->has('costod3')) {
+                $producto->costod3 = $this->formatNumber($request->costod3);
+            }
+
+            $producto->save();
+
+            $prodsucursal = Saprodsucursal::with('producto')->where('codprod', $codprod)->get();
+            if($prodsucursal)
+                foreach ($prodsucursal as $item){
+                    if($item->producto->comercial == $match)
+                        $item->delete();
+                }
+
+            // También actualizar productos con el mismo código en otros comerciales
+            $this->syncProductPrices($producto->codprod, $producto);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Producto actualizado correctamente',
+                'producto' => $producto
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Formatear número desde string con formato español
+     */
+    private function formatNumber($value)
+    {
+        if (!$value) return 0;
+
+        // Si es string, limpiar formato
+        if (is_string($value)) {
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        }
+
+        return floatval($value);
+    }
+
+    /**
+     * Sincronizar precios en otros comerciales (match)
+     */
+    private function syncProductPrices($codprod, $productoOrigen)
+    {
+        $comercial = session('comercialid');
+        $comercialModel = Sacomercial::find($comercial);
+
+        if (!$comercialModel) return;
+
+        $match = $comercialModel->match;
+
+        // Buscar otros comerciales con el mismo match
+        $otrosComerciales = Sacomercial::where('match', $match)
+            ->where('id', '!=', $comercial)
+            ->get();
+
+        foreach ($otrosComerciales as $comercialDestino) {
+            $producto = Saprod::where('codprod', $codprod)
+                ->where('comercial', $comercialDestino->id)
+                ->first();
+
+            if ($producto) {
+                $producto->descrip    = $productoOrigen->descrip;
+                $producto->refere     = $productoOrigen->refere;
+                $producto->preciodant = $productoOrigen->preciodant;
+                $producto->preciodpro = $productoOrigen->preciodpro;
+                $producto->preciod    = $productoOrigen->preciod;
+                $producto->costod     = $productoOrigen->costod;
+                $producto->costod2    = $productoOrigen->costod2;
+                $producto->costod3    = $productoOrigen->costod3;
+                $producto->save();
+
+                $prodsucursal = Saprodsucursal::with('producto')->where('codprod', $codprod)->get();
+                if($prodsucursal)
+                    foreach ($prodsucursal as $item){
+                        if($item->producto->comercial == $match)
+                            $item->delete();
+                    }
+
+            }
+        }
     }
 
     /**

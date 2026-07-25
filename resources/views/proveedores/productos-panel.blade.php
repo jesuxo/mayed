@@ -108,6 +108,14 @@
         .ver-existencias .ri-stack-line {
             font-size: 14px;
         }
+
+        .btn-editar-producto {
+            opacity: 0.3;
+            transition: opacity 0.2s;
+        }
+        tr:hover .btn-editar-producto {
+            opacity: 1;
+        }
     </style>
 @endsection
 @section('content')
@@ -432,8 +440,9 @@
                         <table class="table table-sm table-hover table-analisis" id="productosTable">
                             <thead>
                             <tr>
-                                <th class="sortable" data-sort="codprod">Código <i class="ri-arrow-up-down-line"></i></th>
-                                <th class="sortable" data-sort="descrip">Producto <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable" data-sort="codprod">Código    <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable" data-sort="descrip">Producto  <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable" data-sort="descrip">Marca     <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="stock">Stock Total <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_sin_venta">Días sin Venta <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_stock">Días Stock <i class="ri-arrow-up-down-line"></i></th>
@@ -443,13 +452,23 @@
                             </thead>
                             <tbody id="productosTableBody">
                             @forelse($productos ?? [] as $producto)
-                                <tr>
-                                    <td><small>{{ $producto->codprod }}</small></td>
+                                <tr id="tr{{ $producto->codprod }}" >
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <button class="btn btn-sm btn-outline-primary  btn-editar-producto" style="width: 20px;   height: 20px;  padding: 0px;  margin-right: 8px;"
+                                                    data-id="{{ $producto->codprod }}"
+                                                    title="Editar producto" onclick="$('#tr{{ $producto->codprod }}').css('background','#e0f2ff')">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <span class="fw-medium">{{ $producto->codprod }}</span>
+                                        </div>
+                                    </td>
                                     <td>{{ $producto->descrip }}</td>
+                                    <td>{{ $producto->marca }}</td>
 
                                     <!-- Stock Total -->
                                     <td class="text-end {{ $producto->existencia_actual < 10 ? 'stock-bajo' : 'stock-normal' }}">
-                                        {{ number_format($producto->existencia_actual ?? 0, 0) }}
+                                        {{ number_format($producto->existencia_actual+0 ?? 0, 0) }}
                                     </td>
 
                                     <!-- Días sin Venta -->
@@ -538,7 +557,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center py-4">
+                                    <td colspan="8" class="text-center py-4">
                                         <i class="ri-inbox-line fs-1 text-muted"></i>
                                         <p class="text-muted mt-2">No hay productos para mostrar</p>
                                     </td>
@@ -616,12 +635,15 @@
 
         </div>
     </div>
+
+    @include('proveedores.partials.producto_edit_modal')
 @endsection
 
 @section('scripts')
     {{-- Cargar Chart.js SOLO desde CDN (el local no existe) --}}
     <script src="{{ URL::asset('build/js/app.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         $(document).ready(function() {
@@ -1008,6 +1030,214 @@
                     return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
             }
+        });
+
+        $(document).ready(function() {
+            const modal = new bootstrap.Modal(document.getElementById('productoEditModal'));
+
+            // ============================================
+            // ABRIR MODAL DE EDICIÓN
+            // ============================================
+            $(document).on('click', '.btn-editar-producto', function(e) {
+                e.preventDefault();
+
+                const codprod = $(this).data('id');
+                const fila = $(this).closest('tr');
+
+                // Obtener datos de la fila
+                const codigo = fila.find('td:eq(0)').text().trim();
+                const descrip = fila.find('td:eq(1)').text().trim();
+                const existencia = fila.find('td:eq(3)').text().trim();
+                const costo = fila.find('td:eq(8)').text().replace('$', '').trim();
+                const precio = fila.find('td:eq(9)').text().replace('$', '').trim();
+                const margen = fila.find('td:eq(10)').text().trim();
+                const instancia = fila.find('td:eq(11)').text().trim() || 'Sin instancia';
+
+                // Cargar datos completos del producto vía AJAX
+                Swal.fire({
+                    title: 'Cargando...',
+                    text: 'Obteniendo datos del producto',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '/productos/' + codprod + '/datos-edit',
+                    type: 'GET',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        Swal.close();
+
+                        if (response.success) {
+                            const producto = response.producto;
+
+                            // Llenar el modal
+                            $('#editProductoId').val(producto.id);
+                            $('#editProductoCodigo').text(producto.codprod);
+                            $('#modalProductoNombre').text(producto.descrip);
+                            $('#editDescrip').val(producto.descrip);
+                            $('#editRefere').val(producto.refere || '');
+                            $('#editPreciodant').val(producto.preciodant || 0);
+                            $('#editPreciodpro').val(producto.preciodpro || 0);
+                            $('#editPreciod').val(producto.preciod || 0);
+                            $('#editCostod').val(producto.costod || 0);
+                            $('#editCostod2').val(producto.costod2 || 0);
+                            $('#editCostod3').val(producto.costod3 || 0);
+                            $('#editInstancia').val(producto.instancia_descrip || 'Sin instancia');
+                            $('#editExistencia').val(producto.existencia_total || 0);
+
+                            // Calcular margen
+                            const precioVenta = parseFloat(producto.costod || 0);
+                            const precioCosto = parseFloat(producto.preciodpro || 0);
+                            const margenCalc = precioCosto > 0 ? ((precioVenta - precioCosto) / precioCosto * 100) : 0;
+                            $('#editMargen').val(margenCalc.toFixed(1) + '%');
+
+                            modal.show();
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'No se pudieron cargar los datos del producto'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error al cargar los datos del producto'
+                        });
+                        console.error('Error:', xhr);
+                    }
+                });
+            });
+
+            // ============================================
+            // FORMATO DE PRECIOS (máscara)
+            // ============================================
+            $('.precio-input').on('input', function() {
+                let value = $(this).val();
+                // Solo permitir números, punto y coma
+                value = value.replace(/[^0-9,.]/g, '');
+
+                // Si hay coma, reemplazar por punto para el cálculo
+                if (value.includes(',')) {
+                    value = value.replace(/\./g, '');
+                    value = value.replace(',', '.');
+                }
+
+                // Limitar a 2 decimales
+                const parts = value.split('.');
+                if (parts.length > 1) {
+                    parts[1] = parts[1].slice(0, 2);
+                    value = parts.join('.');
+                }
+
+                $(this).val(value);
+            });
+
+            // ============================================
+            // GUARDAR PRODUCTO VÍA AJAX
+            // ============================================
+            $('#productoEditForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const formData = $(this).serialize();
+                const submitBtn = $('#btnGuardarProducto');
+                const originalText = submitBtn.html();
+
+                // Deshabilitar botón
+                submitBtn.prop('disabled', true);
+                submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...');
+
+                $.ajax({
+                    url: '{{ route("proveedores.producto.quick-update") }}',
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Actualizado!',
+                                text: response.message || 'Producto actualizado correctamente',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                            // Actualizar la fila de la tabla con los nuevos datos
+                            const codprod = $('#editProductoCodigo').text();
+                            const fila = $('.btn-editar-producto[data-id="' + codprod + '"]').closest('tr');
+
+                            if (fila.length) {
+                                // Actualizar descripción
+                                fila.find('td:eq(1)').text($('#editDescrip').val());
+                                // Actualizar precios en la tabla
+                                fila.find('td:eq(8)').text('$' + parseFloat($('#editCostod').val() || 0).toFixed(2));
+                                fila.find('td:eq(9)').text('$' + parseFloat($('#editPreciod').val() || 0).toFixed(2));
+                                // Actualizar margen
+                                const precioVenta = parseFloat($('#editCostod').val() || 0);
+                                const precioCosto = parseFloat($('#editPreciodpro').val() || 0);
+                                const nuevoMargen = precioCosto > 0 ? ((precioVenta - precioCosto) / precioCosto * 100) : 0;
+                                const badgeMargen = fila.find('td:eq(10) .badge');
+                                badgeMargen.text(nuevoMargen.toFixed(1) + '%');
+
+                                // Cambiar color según margen
+                                badgeMargen.removeClass('bg-success bg-warning bg-danger');
+                                if (nuevoMargen > 30) badgeMargen.addClass('bg-success');
+                                else if (nuevoMargen > 15) badgeMargen.addClass('bg-warning');
+                                else badgeMargen.addClass('bg-danger');
+                            }
+
+                            // Cerrar modal
+                            setTimeout(() => {
+                                modal.hide();
+                            }, 500);
+
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || 'Error al actualizar el producto'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        let mensaje = 'Error al actualizar el producto';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            mensaje = xhr.responseJSON.message;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: mensaje
+                        });
+                        console.error('Error:', xhr);
+                    },
+                    complete: function() {
+                        submitBtn.prop('disabled', false);
+                        submitBtn.html(originalText);
+                    }
+                });
+            });
+
+            // ============================================
+            // LIMPIAR MODAL AL CERRAR
+            // ============================================
+            $('#productoEditModal').on('hidden.bs.modal', function() {
+                $('#productoEditForm')[0].reset();
+                $('#editProductoId').val('');
+                $('#editProductoCodigo').text('');
+                $('#modalProductoNombre').text('');
+                $('#editInstancia').val('');
+                $('#editExistencia').val('');
+                $('#editMargen').val('');
+            });
         });
     </script>
 @endsection
