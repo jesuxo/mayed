@@ -1116,29 +1116,7 @@
                 });
             });
 
-            // ============================================
-            // FORMATO DE PRECIOS (máscara)
-            // ============================================
-            $('.precio-input').on('input', function() {
-                let value = $(this).val();
-                // Solo permitir números, punto y coma
-                value = value.replace(/[^0-9,.]/g, '');
 
-                // Si hay coma, reemplazar por punto para el cálculo
-                if (value.includes(',')) {
-                    value = value.replace(/\./g, '');
-                    value = value.replace(',', '.');
-                }
-
-                // Limitar a 2 decimales
-                const parts = value.split('.');
-                if (parts.length > 1) {
-                    parts[1] = parts[1].slice(0, 2);
-                    value = parts.join('.');
-                }
-
-                $(this).val(value);
-            });
 
             // ============================================
             // GUARDAR PRODUCTO VÍA AJAX
