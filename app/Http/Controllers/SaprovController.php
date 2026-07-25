@@ -294,11 +294,6 @@ class SaprovController extends Controller
     {
         if (!$value) return 0;
 
-        // Si es string, limpiar formato
-        if (is_string($value)) {
-            $value = str_replace('.', '', $value);
-            $value = str_replace(',', '.', $value);
-        }
 
         return floatval($value);
     }
