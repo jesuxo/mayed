@@ -27,18 +27,25 @@
                         <div class="col-12">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Descripción del Producto</label>
-                                <input type="text" class="form-control" id="editDescrip" name="descrip"
+                                <input type="text" class="form-control" id="editDescrip" name="descrip"  maxlength="40"
                                        placeholder="Nombre del producto" required>
                             </div>
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-12">
+                        <div class="col-6">
                             <div class="mb-3">
                                 <label class="form-label">Referencia / Código de Barra</label>
-                                <input type="text" class="form-control" id="editRefere" name="refere"
+                                <input type="text" class="form-control" id="editRefere" name="refere"  maxlength="40"
                                        placeholder="Ej: Código de barra">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="mb-3">
+                                <label class="form-label">Marca</label>
+                                <input type="text" class="form-control" id="editMarca" name="marca"  maxlength="20"
+                                       placeholder="Ej: Polar">
                             </div>
                         </div>
                     </div>

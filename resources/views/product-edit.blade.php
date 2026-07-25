@@ -94,27 +94,12 @@
                             </div>
                             <div class="flex-grow-1">
                                 <h5 class="card-title mb-1 ">Informaci&oacute;n</h5>
-                                <p class="text-muted mb-0">Ingrese/Modifique los datos del producto.</p>
+                                <p class="text-muted mb-0">Modifique los datos del producto.</p>
                             </div>
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3" style="display:none !important;">
-                            <label class="form-label">Product description</label>
 
-                            <div id="ckeditor-classic">
-                                <p>Tommy Hilfiger men striped pink sweatshirt. Crafted with cotton. Material composition is
-                                    100% organic cotton. This is one of the world’s leading designer lifestyle brands and is
-                                    internationally recognized for celebrating the essence of classic American cool style,
-                                    featuring preppy with a twist designs.</p>
-                                <ul>
-                                    <li>Full Sleeve</li>
-                                    <li>Cotton</li>
-                                    <li>All Sizes available</li>
-                                    <li>4 Different Color</li>
-                                </ul>
-                            </div>
-                        </div>
                         <div>
                             <div class="d-flex align-items-start">
                                 <div class="flex-grow-1">
@@ -152,7 +137,7 @@
                                 <div class="mb-3">
                                     <label class="form-label" for="refere">Referencia</label>
                                     <input type="text" class="form-control" id="refere" name="refere"  value="{{$producto->refere}}"
-                                           placeholder="Ej: C&oacute;digo Barra">
+                                           maxlength="40"   placeholder="Ej: C&oacute;digo Barra">
                                 </div>
                             </div>
                         </div>
@@ -165,25 +150,25 @@
 
                             <input type="text" class="form-control d-none" id="product-id-input">
 
-                            <input type="text" class="form-control" id="descrip" value="{{$producto->descrip}}"
+                            <input type="text" class="form-control" id="descrip" value="{{$producto->descrip}}" maxlength="40"
                                    placeholder="Descripcion principal" name="descrip" required>
                             <div class="invalid-feedback">Por favor, ingrese el nombre/descripci&oacute;n del producto</div>
                         </div>
 
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="descrip2" name="descrip2"   value="{{$producto->descrip2}}"
+                            <input type="text" class="form-control" id="descrip2" name="descrip2"  maxlength="40"  value="{{$producto->descrip2}}"
                                    placeholder="Descripci&oacute;n 2" >
                         </div>
 
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="descrip3" name="descrip3"  value="{{$producto->descrip3}}"
+                            <input type="text" class="form-control" id="descrip3" name="descrip3"  maxlength="40" value="{{$producto->descrip3}}"
                                    placeholder="Descripci&oacute;n 3" >
                         </div>
                         <div class="row ">
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label class="form-label" for="marca">Marca</label>
-                                    <input type="text" class="form-control" id="marca"  value="{{$producto->marca}}" name="marca"
+                                    <input type="text" class="form-control" id="marca"  maxlength="20" value="{{$producto->marca}}" name="marca"
                                            placeholder="Ej: POLAR">
                                 </div>
                             </div>
@@ -191,7 +176,7 @@
                                 <div class="mb-3">
                                     <label class="form-label" for="unidad">Unidad de medida</label>
                                     <input type="text" class="form-control" id="unidad" name="unidad"value="{{$producto->unidad}}"
-                                           placeholder="Ej: Kg">
+                                           maxlength="3"      placeholder="Ej: Kg">
                                 </div>
                             </div>
                         </div>

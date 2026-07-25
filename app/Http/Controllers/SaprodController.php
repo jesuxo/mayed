@@ -1837,18 +1837,19 @@ class SaprodController extends Controller
         return response()->json([
             'success' => true,
             'producto' => [
-                'id' => $producto->id,
-                'codprod' => $producto->codprod,
-                'descrip' => $producto->descrip,
-                'refere' => $producto->refere,
+                'id'         => $producto->id,
+                'codprod'    => $producto->codprod,
+                'descrip'    => $producto->descrip,
+                'refere'     => $producto->refere,
+                'marca'      => $producto->marca,
                 'preciodant' => $producto->preciodant ?? 0,
                 'preciodpro' => $producto->preciodpro ?? 0,
-                'preciod' => $producto->preciod ?? 0,
-                'costod' => $producto->costod ?? 0,
-                'costod2' => $producto->costod2 ?? 0,
-                'costod3' => $producto->costod3 ?? 0,
+                'preciod'    => $producto->preciod ?? 0,
+                'costod'     => $producto->costod ?? 0,
+                'costod2'    => $producto->costod2 ?? 0,
+                'costod3'    => $producto->costod3 ?? 0,
                 'instancia_descrip' => $instancia ? $instancia->descrip : 'Sin instancia',
-                'existencia_total' => $existenciaTotal,
+                'existencia_total'  => $existenciaTotal,
             ]
         ]);
     }

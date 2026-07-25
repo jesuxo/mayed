@@ -215,7 +215,8 @@ class SaprovController extends Controller
             $request->validate([
                 'id'         => 'required|exists:saprod,id',
                 'descrip'    => 'required|string|max:255',
-                'refere'     => 'nullable|string|max:50',
+                'refere'     => 'nullable|string|max:40',
+                'marca'      => 'nullable|string|max:20',
                 'preciodant' => 'nullable|numeric|min:0',
                 'preciodpro' => 'nullable|numeric|min:0',
                 'preciod'    => 'nullable|numeric|min:0',
@@ -236,6 +237,7 @@ class SaprovController extends Controller
             $codprod           = $producto->codprod;
             $producto->descrip = $request->descrip;
             $producto->refere  = $request->refere;
+            $producto->marca   = $request->marca;
 
             // Precios (costo)
             if ($request->has('preciodant')) {
@@ -326,12 +328,7 @@ class SaprovController extends Controller
             if ($producto) {
                 $producto->descrip    = $productoOrigen->descrip;
                 $producto->refere     = $productoOrigen->refere;
-                $producto->preciodant = $productoOrigen->preciodant;
-                $producto->preciodpro = $productoOrigen->preciodpro;
-                $producto->preciod    = $productoOrigen->preciod;
-                $producto->costod     = $productoOrigen->costod;
-                $producto->costod2    = $productoOrigen->costod2;
-                $producto->costod3    = $productoOrigen->costod3;
+                $producto->marca      = $productoOrigen->marca;
                 $producto->save();
 
                 $prodsucursal = Saprodsucursal::with('producto')->where('codprod', $codprod)->get();

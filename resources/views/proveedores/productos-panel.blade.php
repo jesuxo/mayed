@@ -1045,13 +1045,13 @@
                 const fila = $(this).closest('tr');
 
                 // Obtener datos de la fila
-                const codigo = fila.find('td:eq(0)').text().trim();
-                const descrip = fila.find('td:eq(1)').text().trim();
+                const codigo     = fila.find('td:eq(0)').text().trim();
+                const descrip    = fila.find('td:eq(1)').text().trim();
                 const existencia = fila.find('td:eq(3)').text().trim();
-                const costo = fila.find('td:eq(8)').text().replace('$', '').trim();
-                const precio = fila.find('td:eq(9)').text().replace('$', '').trim();
-                const margen = fila.find('td:eq(10)').text().trim();
-                const instancia = fila.find('td:eq(11)').text().trim() || 'Sin instancia';
+                const costo      = fila.find('td:eq(8)').text().replace('$', '').trim();
+                const precio     = fila.find('td:eq(9)').text().replace('$', '').trim();
+                const margen     = fila.find('td:eq(10)').text().trim();
+                const instancia  = fila.find('td:eq(11)').text().trim() || 'Sin instancia';
 
                 // Cargar datos completos del producto vía AJAX
                 Swal.fire({
@@ -1079,6 +1079,7 @@
                             $('#modalProductoNombre').text(producto.descrip);
                             $('#editDescrip').val(producto.descrip);
                             $('#editRefere').val(producto.refere || '');
+                            $('#editMarca').val(producto.marca || '');
                             $('#editPreciodant').val(producto.preciodant || 0);
                             $('#editPreciodpro').val(producto.preciodpro || 0);
                             $('#editPreciod').val(producto.preciod || 0);

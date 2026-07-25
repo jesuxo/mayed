@@ -92,7 +92,7 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label class="form-label" for="refere">Referencia</label>
-                                    <input type="text" class="form-control" id="refere" name="refere"
+                                    <input type="text" class="form-control" id="refere" name="refere"  maxlength="40"
                                            placeholder="Ej: C&oacute;digo de barra" value="{{ old('refere') }}">
                                 </div>
                             </div>
@@ -102,7 +102,7 @@
                             <label class="form-label" for="descrip">Nombre del producto <span class="text-danger">*</span></label>
                             <input type="hidden" class="form-control" id="formAction" name="formAction" value="add">
                             <input type="text" class="form-control" id="descrip"
-                                   value="{{ old('descrip') }}"
+                                   value="{{ old('descrip') }}" maxlength="40"
                                    placeholder="Descripci&oacute;n principal"
                                    name="descrip"
                                    required>
@@ -111,13 +111,13 @@
 
                         <div class="mb-3">
                             <input type="text" class="form-control" id="descrip2" name="descrip2"
-                                   value="{{ old('descrip2') }}"
+                                   value="{{ old('descrip2') }}"  maxlength="40"
                                    placeholder="Descripci&oacute;n 2">
                         </div>
 
                         <div class="mb-3">
                             <input type="text" class="form-control" id="descrip3" name="descrip3"
-                                   value="{{ old('descrip3') }}"
+                                   value="{{ old('descrip3') }}"  maxlength="40"
                                    placeholder="Descripci&oacute;n 3">
                         </div>
 
@@ -125,14 +125,14 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label class="form-label" for="marca">Marca</label>
-                                    <input type="text" class="form-control" id="marca" name="marca"
+                                    <input type="text" class="form-control" id="marca" name="marca"  maxlength="20"
                                            placeholder="Ej: POLAR" value="{{ old('marca') }}">
                                 </div>
                             </div>
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label class="form-label" for="unidad">Unidad de medida</label>
-                                    <input type="text" class="form-control" id="unidad" name="unidad"
+                                    <input type="text" class="form-control" id="unidad" name="unidad"  maxlength="3"
                                            placeholder="Ej: Kg, Unidad, Litro" value="{{ old('unidad') }}">
                                 </div>
                             </div>
