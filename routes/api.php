@@ -39,6 +39,11 @@ Route::group([ 'middleware' => 'check.user'], function () {
         Route::post('cwtransferencia/sync/apiStatus', 'apiStatus');
     });
 
+    Route::controller(\App\Http\Controllers\SaeprdController::class)->group(function () {
+        Route::post('saeprd/sync/doc', 'sync');
+    });
+
+
     Route::controller(\App\Http\Controllers\CwcxcprvController::class)->group(function () {
         Route::post('cwcxcprv/sync/list', 'cuentasxpagar');
     });
