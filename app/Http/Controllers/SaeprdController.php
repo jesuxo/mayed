@@ -15,7 +15,7 @@ class SaeprdController extends Controller
      */
     public function sync(Request $request)
     {
-        try {
+       // try {
             // Validar que lleguen los datos
             $request->validate([
                 'saeprd_data' => 'required|array',
@@ -44,7 +44,7 @@ class SaeprdController extends Controller
             // Iniciar transacción
             DB::beginTransaction();
 
-            try {
+           // try {
                 foreach ($saeprdData as $data) {
                     // Verificar si el producto existe en saprod
                     $producto = Saprod::where('codprod', $data['CodProd'])->first();
@@ -87,22 +87,22 @@ class SaeprdController extends Controller
                     'fk_sucursal' => $fk_sucursal
                 ]);
 
-            } catch (\Exception $e) {
+           /* } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('Error en sync SAEPRD: ' . $e->getMessage());
                 return response()->json([
                     'success' => false,
                     'message' => 'Error al procesar los datos: ' . $e->getMessage()
                 ], 500);
-            }
+            }*/
 
-        } catch (\Exception $e) {
+        /*} catch (\Exception $e) {
             Log::error('Error en SAEPRD sync: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error en la sincronización: ' . $e->getMessage()
             ], 500);
-        }
+        }*/
     }
 
 }
