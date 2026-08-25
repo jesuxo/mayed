@@ -36,8 +36,8 @@ class HomeController extends Controller
         ]);
 
         // Obtener filtros del request
-        $fechaInicio = $request->fecha_inicio ?? Carbon::now()->startOfMonth()->format('Y-m-d');
-        $fechaFin    = $request->fecha_fin ?? Carbon::now()->format('Y-m-d');
+        $fechaInicio = $request->fecha_inicio ?? '';
+        $fechaFin    = $request->fecha_fin ?? '';
         $sucursalId  = $request->fk_sucursal;
 
         // Obtener sucursales a las que el usuario tiene acceso
@@ -56,7 +56,6 @@ class HomeController extends Controller
         numerod,
         tipofac
     ")
-            ->whereRaw("fk_sucursal in ($arraysucursales)")
             ->whereIn('codclie', ['501934070']) // cliente 501934070
             ->whereIn('tipofac', ['A', 'Z']) // Facturas de venta (A=Factura, Z=Factura ajuste)
             ->whereBetween('fechat', [
