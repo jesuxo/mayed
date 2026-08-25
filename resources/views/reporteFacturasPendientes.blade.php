@@ -256,7 +256,7 @@
                                         'numerod' => $factura->numerod,
                                         'fksucu' => $factura->fk_sucursal
                                     ]) }}" target="_blank" class="link-factura">
-                                        {{ $factura->tipofac }}-{{ $factura->numerod }}
+                                       {{ $factura->numerod }}
                                         @if($esDevolucion)
                                             <span class="badge badge-devolucion badge-tipo">DEV</span>
                                         @else
