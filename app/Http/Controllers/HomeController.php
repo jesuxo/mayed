@@ -69,6 +69,8 @@ class HomeController extends Controller
             $query->where('fk_sucursal', $sucursalId);
         }
 
+        dd( $query->toSql());
+
         // Ordenar y obtener resultados
         $facturas = $query->orderBy('fechat', 'desc')
             ->orderBy('numerod', 'desc')
