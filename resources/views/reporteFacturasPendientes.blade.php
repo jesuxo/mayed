@@ -103,7 +103,7 @@
                             @php
                             $numeror = (isset($factura->numeror) and $factura->numeror !='')? $factura->numeror  : '';
                             @endphp
-                            <tr @if($numeror !='') bgcolor="red" @endif>
+                            <tr @if($numeror !='') bgcolor="#ffd4d4" @endif>
                                 <td>{{ Carbon\Carbon::parse($factura->fechat)->format('d/m/Y') }}</td>
                                 <td>
                                     <a href="{{ route('facturaver', [
