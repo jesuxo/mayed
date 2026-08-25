@@ -303,17 +303,11 @@
 
                 <!-- Leyenda -->
                 <div class="mt-2 small text-muted d-flex justify-content-between">
-                    <div>
-                        <span class="badge bg-danger badge-saldo">Pendiente</span> Saldo > 0
-                        <span class="badge bg-success badge-saldo ms-2">Cancelada</span> Saldo = 0
-                        <span class="badge badge-devolucion badge-tipo ms-2">DEV</span> Documento de devolución
-                    </div>
+
                     <div>
                         <i class="fas fa-file-pdf text-danger"></i>
                         <a href="#" onclick="window.print()" class="text-decoration-none">Imprimir</a>
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-file-excel text-success"></i>
-                        <a href="#" class="text-decoration-none">Exportar Excel</a>
+
                     </div>
                 </div>
             </div>
