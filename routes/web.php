@@ -83,6 +83,9 @@ use App\Http\Controllers\TramitarCompraController;
 
 Route::middleware(['auth'])->group(function () {
 
+    Route::get('/cashea', [HomeController::class, 'reporteFacturasCashea'])
+        ->name('reporte.facturas.pendientes');
+
     // Ruta para cambiar de comercial
     Route::get('/cambiarcomercial/{comercialId}', [ComercialDashboardController::class, 'cambiarComercial'])
         ->name('comercial.cambiar');
@@ -450,8 +453,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/limpiar-sesion', [TransferenciaController::class, 'limpiarSesion'])->name('transferencias.limpiar');
     });
 
-    Route::get('/reporte/cashea', [HomeController::class, 'reporteFacturasCashea'])
-        ->name('reporte.facturas.pendientes');
+
 
     Route::get('{any}', [TonerController::class, 'index']);
 
