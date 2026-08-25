@@ -283,7 +283,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="7" class="text-center py-4">
                                     <i class="fas fa-inbox fa-2x d-block mb-2 text-muted"></i>
                                     No se encontraron facturas para el período seleccionado.
                                 </td>
@@ -296,7 +296,6 @@
                             <td class="text-right">$ {{ number_format($totales['monto_total'], 2) }}</td>
                             <td class="text-right">$ {{ number_format($totales['abonado_total'], 2) }}</td>
                             <td class="text-right">$ {{ number_format($totales['restante_total'], 2) }}</td>
-                            <td></td>
                         </tr>
                         </tfoot>
                     </table>
