@@ -140,14 +140,6 @@
 @section('content')
     <div class="container-fluid">
         <div class="card">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <h4><i class="fas fa-file-invoice"></i> Reporte de Facturas</h4>
-                <div>
-                    <span class="badge bg-light text-dark me-2">
-                        <i class="fas fa-calendar-alt"></i> {{ \Carbon\Carbon::parse($fechaInicio)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($fechaFin)->format('d/m/Y') }}
-
-                </div>
-            </div>
 
             <div class="card-body">
                 <!-- Filtros Compactos -->
@@ -190,23 +182,23 @@
 
                 <!-- Tarjetas de Totales Compactas -->
                 <div class="row g-1 mb-2">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card bg-primary text-white totales-card">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h5><i class="fas fa-dollar-sign"></i> Facturado</h5>
+                                    <h5 style="color: white"><i class="fas fa-dollar-sign"></i> Facturado</h5>
                                     <h4>$ {{ number_format($totales['monto_total'], 2) }}</h4>
                                 </div>
 
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card bg-success text-white totales-card">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h5><i class="fas fa-check-circle"></i> Abonado</h5>
-                                    <h4>$ {{ number_format($totales['abonado_total'], 2) }}</h4>
+                                    <h5 style="color: white"><i class="fas fa-check-circle"></i> Abonado</h5>
+                                    <h4 style="color: white">$ {{ number_format($totales['abonado_total'], 2) }}</h4>
                                 </div>
                                 <div>
                                     <span class="badge bg-light text-dark">
@@ -216,12 +208,12 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card bg-warning text-dark totales-card">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h5><i class="fas fa-clock"></i> Pendiente</h5>
-                                    <h4>$ {{ number_format($totales['restante_total'], 2) }}</h4>
+                                    <h5 style="color: white"><i class="fas fa-clock"></i> Pendiente</h5>
+                                    <h4 style="color: white">$ {{ number_format($totales['restante_total'], 2) }}</h4>
                                 </div>
                                 <div>
                                     <span class="badge bg-dark text-white">
