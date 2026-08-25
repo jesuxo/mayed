@@ -295,7 +295,7 @@
                         <tr class="table-secondary fw-bold">
                             <td colspan="4" class="text-end">TOTALES:</td>
                             <td class="text-right">$ {{ number_format($totales['monto_total'], 2,',','.') }}</td>
-                            <td class="text-right">$ {{ number_format($totales['abonado_total'], 2,',','.' }}</td>
+                            <td class="text-right">$ {{ number_format($totales['abonado_total'], 2,',','.') }}</td>
                             <td class="text-right">$ {{ number_format($totales['restante_total'], 2,',','.') }}</td>
                         </tr>
                         </tfoot>
