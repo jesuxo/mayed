@@ -61,24 +61,24 @@
                     <div class="col-md-4">
                         <div class="card bg-primary text-white">
                             <div class="card-body">
-                                <h5>Total Facturado</h5>
-                                <h4>$ {{ number_format($totales['monto_total'], 2) }}</h4>
+                                <h5 style="color: white">Total Facturado</h5>
+                                <h4 style="color: white">$ {{ number_format($totales['monto_total'], 2) }}</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card bg-success text-white">
                             <div class="card-body">
-                                <h5>Total Abonado</h5>
-                                <h4>$ {{ number_format($totales['abonado_total'], 2) }}</h4>
+                                <h5 style="color: white">Total Abonado</h5>
+                                <h4 style="color: white">$ {{ number_format($totales['abonado_total'], 2) }}</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card bg-danger text-white">
                             <div class="card-body">
-                                <h5>Saldo Pendiente</h5>
-                                <h4>$ {{ number_format($totales['restante_total'], 2) }}</h4>
+                                <h5 style="color: white">Saldo Pendiente</h5>
+                                <h4 style="color: white">$ {{ number_format($totales['restante_total'], 2) }}</h4>
                             </div>
                         </div>
                     </div>
@@ -88,15 +88,15 @@
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered">
                         <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>N° Factura</th>
-                            <th>Cliente</th>
-                            <th>Cédula/RIF</th>
-                            <th>Monto Factura ($)</th>
-                            <th>Abonado ($)</th>
-                            <th>Saldo Restante ($)</th>
-                        </tr>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>N° Factura</th>
+                                <th>Cliente</th>
+                                <th>Cédula/RIF</th>
+                                <th>Monto Factura ($)</th>
+                                <th>Abonado ($)</th>
+                                <th>Saldo Restante ($)</th>
+                            </tr>
                         </thead>
                         <tbody>
                         @forelse($facturas as $factura)
