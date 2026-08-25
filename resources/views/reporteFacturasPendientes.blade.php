@@ -175,20 +175,6 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label>Mostrar</label>
-                            <select name="mostrar" class="form-select form-select-sm">
-                                <option value="con_saldo" {{ $mostrar == 'con_saldo' ? 'selected' : '' }}>
-                                    Con Saldo Pendiente
-                                </option>
-                                <option value="todas" {{ $mostrar == 'todas' ? 'selected' : '' }}>
-                                    Todas
-                                </option>
-                                <option value="saldo_cero" {{ $mostrar == 'saldo_cero' ? 'selected' : '' }}>
-                                    Saldo Cero
-                                </option>
-                            </select>
-                        </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary btn-sm w-100">
                                 <i class="fas fa-search"></i> Filtrar
