@@ -18,7 +18,7 @@ class SaexisController extends Controller
             if(isset($productos)){
                 foreach ($productos as $prd){
 
-                    if(isset($prd->codprod) and $prd->codprod !='RECARGA'){
+                    if(isset($prd->codprod) and $prd->codprod !='RECARGA' and $prd->codprod !='ESIM' and $prd->codprod !='CHIP'){
                         $existen = Saexis::where(['codprod'    => $prd->codprod,
                                                   'codubic'    => $prd->codubic,
                                                   'fk_sucursal'=> $prd->fk_sucursal])
