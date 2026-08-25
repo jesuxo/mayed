@@ -145,10 +145,7 @@
                 <div>
                     <span class="badge bg-light text-dark me-2">
                         <i class="fas fa-calendar-alt"></i> {{ \Carbon\Carbon::parse($fechaInicio)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($fechaFin)->format('d/m/Y') }}
-                    </span>
-                    <span class="badge bg-info">
-                        <i class="fas fa-file-alt"></i> {{ $totales['cantidad'] }} registros
-                    </span>
+
                 </div>
             </div>
 
@@ -214,9 +211,7 @@
                                     <h5><i class="fas fa-dollar-sign"></i> Facturado</h5>
                                     <h4>$ {{ number_format($totales['monto_total'], 2) }}</h4>
                                 </div>
-                                <div class="text-end">
-                                    <small>{{ $totales['cantidad'] }} docs</small>
-                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -250,21 +245,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card bg-info text-white totales-card">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5><i class="fas fa-receipt"></i> Promedio</h5>
-                                    <h4>$ {{ $totales['cantidad'] > 0 ? number_format($totales['monto_total'] / $totales['cantidad'], 2) : 0 }}</h4>
-                                </div>
-                                <div>
-                                    <span class="badge bg-light text-dark">
-                                        por doc
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
 
                 <!-- Tabla de resultados con scroll -->
