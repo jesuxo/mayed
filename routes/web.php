@@ -76,8 +76,13 @@ Route::middleware(['auth', 'redirect.to.comercial'])->group(function () {
     })->name('sin.asignacion');
 });
 
+// routes/web.php
+
+use App\Http\Controllers\PedidoController;
+use App\Http\Controllers\TramitarCompraController;
 
 Route::middleware(['auth'])->group(function () {
+
     // Ruta para cambiar de comercial
     Route::get('/cambiarcomercial/{comercialId}', [ComercialDashboardController::class, 'cambiarComercial'])
         ->name('comercial.cambiar');
@@ -85,11 +90,37 @@ Route::middleware(['auth'])->group(function () {
     // Ruta para obtener comerciales disponibles (API)
     Route::get('/comerciales/disponibles', [ComercialDashboardController::class, 'getComercialesDisponibles'])
         ->name('comerciales.disponibles');
-});
 
+    // Pedidos
+    Route::resource('pedidos', PedidoController::class);
 
+    // AJAX - Pedidos
+    Route::post('pedidos/{pedido}/agregar-item', [PedidoController::class, 'agregarItem'])->name('pedidos.agregar-item');
+    Route::post('pedidos/buscar-productos', [PedidoController::class, 'buscarProductos'])->name('pedidos.buscar-productos');
+    Route::post('pedidos/cambiar-producto', [PedidoController::class, 'cambiarProducto'])->name('pedidos.cambiar-producto');
+    Route::post('pedidos/actualizar-item', [PedidoController::class, 'actualizarItem'])->name('pedidos.actualizar-item');
+    Route::delete('pedidos/eliminar-item', [PedidoController::class, 'eliminarItem'])->name('pedidos.eliminar-item');
+    Route::post('pedidos/toggle-item-compra', [PedidoController::class, 'toggleItemCompra'])->name('pedidos.toggle-item-compra');
+    Route::post('pedidos/update-variable', [PedidoController::class, 'updateVariable'])->name('pedidos.update-variable');
+    Route::post('pedidos/{pedido}/colocar-costos', [PedidoController::class, 'colocarCostosPrecios'])->name('pedidos.colocar-costos');
 
-Route::middleware(['auth'])->group(function () {
+    // Costos Adicionales
+    Route::post('pedidos/{pedido}/agregar-costo-adicional', [PedidoController::class, 'agregarCostoAdicional'])->name('pedidos.agregar-costo-adicional');
+    Route::post('pedidos/actualizar-costo-adicional', [PedidoController::class, 'actualizarCostoAdicional'])->name('pedidos.actualizar-costo-adicional');
+    Route::delete('pedidos/eliminar-costo-adicional', [PedidoController::class, 'eliminarCostoAdicional'])->name('pedidos.eliminar-costo-adicional');
+
+    // Seriales
+    Route::get('pedidos/{pedido}/seriales/{item}', [PedidoController::class, 'seriales'])->name('pedidos.seriales');
+    Route::post('pedidos/agregar-serial-temporal', [PedidoController::class, 'agregarSerialTemporal'])->name('pedidos.agregar-serial-temporal');
+    Route::post('pedidos/guardar-seriales/{item}', [PedidoController::class, 'guardarSeriales'])->name('pedidos.guardar-seriales');
+    Route::delete('pedidos/eliminar-serial-temporal', [PedidoController::class, 'eliminarSerialTemporal'])->name('pedidos.eliminar-serial-temporal');
+    Route::post('pedidos/limpiar-seriales-temporales', [PedidoController::class, 'limpiarSerialesTemporales'])->name('pedidos.limpiar-seriales-temporales');
+    Route::delete('pedidos/eliminar-serial/{serial}', [PedidoController::class, 'eliminarSerial'])->name('pedidos.eliminar-serial');
+
+    // Tramitar compra (siguiente paso)
+    Route::get('tramitar-compra/{pedido}', [TramitarCompraController::class, 'index'])->name('compras.tramitar');
+    Route::post('tramitar-compra/{pedido}', [TramitarCompraController::class, 'procesar'])->name('compras.procesar');
+
 
 
     Route::prefix('usersucursal')->group(function () {
@@ -418,6 +449,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/cargar-sugerencia', [TransferenciaController::class, 'cargarSugerencia'])->name('transferencias.cargar-sugerencia');
         Route::post('/limpiar-sesion', [TransferenciaController::class, 'limpiarSesion'])->name('transferencias.limpiar');
     });
+
+    Route::get('/reporte/cashea', [HomeController::class, 'reporteFacturasCashea'])
+        ->name('reporte.facturas.pendientes');
 
     Route::get('{any}', [TonerController::class, 'index']);
 
