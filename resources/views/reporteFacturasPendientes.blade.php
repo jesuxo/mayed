@@ -187,7 +187,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h5 style="color: white"><i class="fas fa-dollar-sign"></i> Facturado</h5>
-                                    <h4>$ {{ number_format($totales['monto_total'], 2) }}</h4>
+                                    <h4 style="color: white">$ {{ number_format($totales['monto_total'], 2) }}</h4>
                                 </div>
 
                             </div>
