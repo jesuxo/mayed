@@ -21,7 +21,7 @@
     <div class="container-fluid">
         <div class="card">
             <div class="card-header">
-                <h4>Reporte de Facturas con Saldo Pendiente</h4>
+                <h4>Reporte de Facturas  de CASHEA</h4>
             </div>
 
             <div class="card-body">
