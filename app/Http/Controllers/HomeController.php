@@ -48,16 +48,16 @@ class HomeController extends Controller
         $query = Safact::selectRaw("
         fechat,
         descrip as cliente,
-        id3 as cedula,
-        credendolar as monto_factura,
-        ROUND(contado / tasa_dolar, 2) as abonado,
-        ROUND(credendolar - (contado / tasa_dolar), 2) as restante,
+        id3 as cedula, numeror,
+        ((contado + credito)/ tasa_dolar) * signo as monto_factura,
+        (contado / tasa_dolar) * signo as abonado,
+        (credendolar - (contado / tasa_dolar))  * signo  as restante,
         fk_sucursal,
         numerod,
         tipofac
     ")
             ->whereIn('codclie', ['501934070']) // cliente 501934070
-            ->whereIn('tipofac', ['A', 'Z']) // Facturas de venta (A=Factura, Z=Factura ajuste)
+            ->whereIn('tipofac', ['A', 'B']) // Facturas de venta (A=Factura, Z=Factura ajuste)
             ->whereBetween('fechat', [
                 Carbon::parse($fechaInicio)->startOfDay()->format('Y-m-d H:i:s'),
                 Carbon::parse($fechaFin)->endOfDay()->format('Y-m-d H:i:s')
@@ -83,8 +83,8 @@ class HomeController extends Controller
 
         // Totales del reporte
         $totales = [
-            'monto_total' => $facturas->sum('monto_factura'),
-            'abonado_total' => $facturas->sum('abonado'),
+            'monto_total'    => $facturas->sum('monto_factura'),
+            'abonado_total'  => $facturas->sum('abonado'),
             'restante_total' => $facturas->sum('restante')
         ];
 

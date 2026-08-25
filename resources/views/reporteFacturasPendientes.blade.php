@@ -90,17 +90,20 @@
                         <thead>
                             <tr>
                                 <th>Fecha</th>
-                                <th>N° Factura</th>
+                                <th>N° Doc</th>
                                 <th>Cliente</th>
                                 <th>Cédula/RIF</th>
-                                <th>Monto Factura ($)</th>
+                                <th>Monto   ($)</th>
                                 <th>Abonado ($)</th>
-                                <th>Saldo Restante ($)</th>
+                                <th>Saldo   ($)</th>
                             </tr>
                         </thead>
                         <tbody>
                         @forelse($facturas as $factura)
-                            <tr>
+                            @php
+                            $numeror = (isset($factura->numeror) and $factura->numeror !='')? $factura->numeror  : '';
+                            @endphp
+                            <tr @if($numeror !='') bgcolor="red" @endif>
                                 <td>{{ Carbon\Carbon::parse($factura->fechat)->format('d/m/Y') }}</td>
                                 <td>
                                     <a href="{{ route('facturaver', [
@@ -109,6 +112,10 @@
                                         'fksucu' => $factura->fk_sucursal
                                     ]) }}" target="_blank">
                                         {{ $factura->tipofac }}-{{ $factura->numerod }}
+
+                                        @if($numeror !='' and $factura->tipofac == 'A') FACT DEV @endif
+                                        @if($numeror !='' and $factura->tipofac == 'B') DEVOLUCION @endif
+
                                     </a>
                                 </td>
                                 <td>{{ $factura->cliente }}</td>
