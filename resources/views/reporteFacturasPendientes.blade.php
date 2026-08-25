@@ -257,9 +257,10 @@
                                         'fksucu' => $factura->fk_sucursal
                                     ]) }}" target="_blank" class="link-factura">
                                        {{ $factura->numerod }}
-                                        @if($esDevolucion)
+                                        @if( $factura->tipofac=='B')
                                             <span class="badge badge-devolucion badge-tipo">DEV</span>
-                                        @else
+                                        @endif
+                                        @if($factura->tipofac == 'A')
                                             <span class="badge badge-factura badge-tipo">FAC</span>
                                         @endif
                                     </a>
