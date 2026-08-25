@@ -238,7 +238,7 @@
                             <th style="width: 12%;">Monto ($)</th>
                             <th style="width: 12%;">Abonado ($)</th>
                             <th style="width: 12%;">Saldo ($)</th>
-                            <th style="width: 9%;">Estado</th>
+
                         </tr>
                         </thead>
                         <tbody>
@@ -279,13 +279,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td>
-                                    @if($saldo > 0)
-                                        <span class="badge bg-danger badge-saldo">Pendiente</span>
-                                    @else
-                                        <span class="badge bg-success badge-saldo">Cancelada</span>
-                                    @endif
-                                </td>
+
                             </tr>
                         @empty
                             <tr>
