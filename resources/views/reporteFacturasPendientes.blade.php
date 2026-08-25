@@ -187,7 +187,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h5 style="color: white"><i class="fas fa-dollar-sign"></i> Facturado</h5>
-                                    <h4 style="color: white">$ {{ number_format($totales['monto_total'], 2) }}</h4>
+                                    <h4 style="color: white">$ {{ number_format($totales['monto_total'], 2,',','.') }}</h4>
                                 </div>
 
                             </div>
@@ -198,7 +198,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h5 style="color: white"><i class="fas fa-check-circle"></i> Abonado</h5>
-                                    <h4 style="color: white">$ {{ number_format($totales['abonado_total'], 2) }}</h4>
+                                    <h4 style="color: white">$ {{ number_format($totales['abonado_total'], 2,',','.') }}</h4>
                                 </div>
                                 <div>
                                     <span class="badge bg-light text-dark">
@@ -213,7 +213,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h5 style="color: white"><i class="fas fa-clock"></i> Pendiente</h5>
-                                    <h4 style="color: white">$ {{ number_format($totales['restante_total'], 2) }}</h4>
+                                    <h4 style="color: white">$ {{ number_format($totales['restante_total'], 2,',','.') }}</h4>
                                 </div>
                                 <div>
                                     <span class="badge bg-dark text-white">
@@ -267,16 +267,16 @@
                                 </td>
                                 <td class="text-start">{{ $factura->cliente }}</td>
                                 <td>{{ $factura->cedula ?: 'N/A' }}</td>
-                                <td class="text-right">$ {{ number_format($factura->monto_factura, 2) }}</td>
-                                <td class="text-right">$ {{ number_format($factura->abonado, 2) }}</td>
+                                <td class="text-right">  {{ number_format($factura->monto_factura, 2,',','.') }}</td>
+                                <td class="text-right">  {{ number_format($factura->abonado, 2,',','.') }}</td>
                                 <td class="text-right">
                                     @if($saldo > 0)
                                         <span class="text-danger font-weight-bold">
-                                            $ {{ number_format($saldo, 2) }}
+                                              {{ number_format($saldo, 2,',','.') }}
                                         </span>
                                     @else
                                         <span class="text-success">
-                                            $ {{ number_format($saldo, 2) }}
+                                            {{ number_format($saldo, 2,',','.') }}
                                         </span>
                                     @endif
                                 </td>
@@ -294,9 +294,9 @@
                         <tfoot>
                         <tr class="table-secondary fw-bold">
                             <td colspan="4" class="text-end">TOTALES:</td>
-                            <td class="text-right">$ {{ number_format($totales['monto_total'], 2) }}</td>
-                            <td class="text-right">$ {{ number_format($totales['abonado_total'], 2) }}</td>
-                            <td class="text-right">$ {{ number_format($totales['restante_total'], 2) }}</td>
+                            <td class="text-right">$ {{ number_format($totales['monto_total'], 2,',','.') }}</td>
+                            <td class="text-right">$ {{ number_format($totales['abonado_total'], 2,',','.' }}</td>
+                            <td class="text-right">$ {{ number_format($totales['restante_total'], 2,',','.') }}</td>
                         </tr>
                         </tfoot>
                     </table>
