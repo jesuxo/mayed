@@ -51,7 +51,7 @@ class HomeController extends Controller
         id3 as cedula, numeror,
         ((contado + credito)/ tasa_dolar) * signo as monto_factura,
         (contado / tasa_dolar) * signo as abonado,
-        (credendolar - (contado / tasa_dolar))  * signo  as restante,
+        ( credito / tasa_dolar)   * signo  as restante,
         fk_sucursal,
         numerod,
         tipofac
