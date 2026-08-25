@@ -57,13 +57,12 @@ class HomeController extends Controller
         tipofac
     ")
             ->whereRaw("fk_sucursal in ($arraysucursales)")
+            ->whereIn('codclie', ['501934070']) // cliente 501934070
             ->whereIn('tipofac', ['A', 'Z']) // Facturas de venta (A=Factura, Z=Factura ajuste)
             ->whereBetween('fechat', [
                 Carbon::parse($fechaInicio)->startOfDay()->format('Y-m-d H:i:s'),
                 Carbon::parse($fechaFin)->endOfDay()->format('Y-m-d H:i:s')
-            ])
-            // Filtro para facturas con saldo pendiente (restante > 0)
-            ->having('restante', '>', 0);
+            ]) ;
 
         // Aplicar filtro de sucursal si se seleccionó
         if (!empty($sucursalId)) {

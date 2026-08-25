@@ -1,13 +1,10 @@
 
 @extends('layouts.master')
 @section('title')
-    REPORTE DE INVENTARIO
+    REPORTE
 @endsection
 @section('css')
-    <link href="{{ URL::asset('build/libs/jsvectormap/jsvectormap.min.css') }}" rel="stylesheet" type="text/css">
 
-    <!--Swiper slider css-->
-    <link href="{{ URL::asset('build/libs/swiper/swiper-bundle.min.css') }}" rel="stylesheet" type="text/css">
     <style>
     .botoncal{
         background: transparent;
@@ -20,73 +17,118 @@
     </style>
 @endsection
 @section('content')
-    <style>
-        .tdline{
-            border:1px solid #0072c5 !important;
 
-        }
-        .tdlineff{
-            border-left:1px solid #fff !important;
-
-            color: white !important;
-            background-color: #0072c5 !important;
-        }
-    </style>
-    <div class="row">
-        <div class=" col-lg-3  ">
-            <div class="card card-height-100">
-                <div class="card-header">
-                    <div class="d-flex align-items-center gap-3   mt-3 mt-xxl-0">
-                        INVENTARIO POR SUCURSAL
-                    </div>
-
-                </div>
-                <div class="card-body" data-simplebar  style="max-height: 285px;" >
-
-                        <div class="table-responsive table-card ">
-                            <table class="table table-borderless table-striped align-middle table-sm fs-14 mb-0">
-                                <thead class="text-muted table-light">
-                                    <tr>
-                                            <th width="80%" scope="col">   Sucursal</th>
-                                            <th  width="20%"scope="col" style="text-align: center !important" align="center">Costo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-
-                                @php $tt = 0; @endphp
-                                @foreach($costoinven as $index => $sucursal)
-                                    @php $tt += $sucursal->suma;@endphp
-                                    <tr>
-                                        <td>  {{$sucursal->descrip}} </td>
-                                        <td align="right"> {{number_format($sucursal->suma,2,',','.')}}  </td>
-                                    </tr>
-
-                                @endforeach
-                                </tbody>
-                                <tr>
-                                    <td align="right">  Total: </td>
-                                    <td align="right"> {{number_format($tt,2,',','.')}}  </td>
-                                </tr>
-                            </table>
-                        </div>
-
-                </div>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h4>Reporte de Facturas con Saldo Pendiente</h4>
             </div>
-        </div>
-        <div class=" col-lg-9   ">
-            <div class="card card-height-100">
-                <div class="card-header">
-                    <div class="d-flex align-items-center gap-3   mt-3 mt-xxl-0">
-                       ASD
-                    </div>
 
-                </div>
-                <div class="card-body" data-simplebar  style="max-height: 285px;" >
-                    @if(isset($sucursales))
-                        <div class="table-responsive table-card ">
-
+            <div class="card-body">
+                <!-- Filtros -->
+                <form method="GET" action="{{ route('reporte.facturas.pendientes') }}" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label>Fecha Inicio</label>
+                            <input type="date" name="fecha_inicio" class="form-control"
+                                   value="{{ $fechaInicio }}">
                         </div>
-                    @endif
+                        <div class="col-md-3">
+                            <label>Fecha Fin</label>
+                            <input type="date" name="fecha_fin" class="form-control"
+                                   value="{{ $fechaFin }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Sucursal</label>
+                            <select name="fk_sucursal" class="form-control">
+                                <option value="">Todas las sucursales</option>
+                                @foreach($sucursales as $suc)
+                                    <option value="{{ $suc->id }}"
+                                        {{ $sucursalId == $suc->id ? 'selected' : '' }}>
+                                        {{ $suc->descrip }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Totales -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h5>Total Facturado</h5>
+                                <h4>$ {{ number_format($totales['monto_total'], 2) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h5>Total Abonado</h5>
+                                <h4>$ {{ number_format($totales['abonado_total'], 2) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body">
+                                <h5>Saldo Pendiente</h5>
+                                <h4>$ {{ number_format($totales['restante_total'], 2) }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de resultados -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>N° Factura</th>
+                            <th>Cliente</th>
+                            <th>Cédula/RIF</th>
+                            <th>Monto Factura ($)</th>
+                            <th>Abonado ($)</th>
+                            <th>Saldo Restante ($)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($facturas as $factura)
+                            <tr>
+                                <td>{{ Carbon\Carbon::parse($factura->fechat)->format('d/m/Y') }}</td>
+                                <td>
+                                    <a href="{{ route('facturaver', [
+                                        'tipofac' => $factura->tipofac,
+                                        'numerod' => $factura->numerod,
+                                        'fksucu' => $factura->fk_sucursal
+                                    ]) }}" target="_blank">
+                                        {{ $factura->tipofac }}-{{ $factura->numerod }}
+                                    </a>
+                                </td>
+                                <td>{{ $factura->cliente }}</td>
+                                <td>{{ $factura->cedula }}</td>
+                                <td class="text-right">$ {{ number_format($factura->monto_factura, 2) }}</td>
+                                <td class="text-right">$ {{ number_format($factura->abonado, 2) }}</td>
+                                <td class="text-right text-danger font-weight-bold">
+                                    $ {{ number_format($factura->restante, 2) }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center">
+                                    No se encontraron facturas con saldo pendiente
+                                    para el período seleccionado.
+                                </td>
+                            </tr>
+                        @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -96,19 +138,7 @@
 
 @endsection
 @section('scripts')
-    <!-- apexcharts -->
-    <script src="{{ URL::asset('build/libs/apexcharts/apexcharts.min.js') }}"></script>
 
-    <!-- Vector map-->
-    <script src="{{ URL::asset('build/libs/jsvectormap/jsvectormap.min.js') }}"></script>
-    <script src="{{ URL::asset('build/libs/jsvectormap/world-merc.js') }}"></script>
-
-    <script src="{{ URL::asset('build/libs/list.js/list.min.js') }}"></script>
-
-    <!--Swiper slider js-->
-    <script src="{{ URL::asset('build/libs/swiper/swiper-bundle.min.js') }}"></script>
-
-    <!-- App js -->
     <script src="{{ URL::asset('build/js/app.js') }}"></script>
 
 @endsection

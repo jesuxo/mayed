@@ -83,7 +83,7 @@ use App\Http\Controllers\TramitarCompraController;
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/cashea', [HomeController::class, 'reporteFacturasCashea'])
+    Route::match(['GET', 'POST'], '/cashea', [HomeController::class, 'reporteFacturasCashea'])
         ->name('reporte.facturas.pendientes');
 
     // Ruta para cambiar de comercial
