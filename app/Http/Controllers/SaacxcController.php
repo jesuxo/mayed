@@ -523,8 +523,8 @@ class SaacxcController extends Controller
             }
 
             // Guardar los totales globales para usarlos en la distribución
-            $monto_instrumentos_bs_total = $monto_instrumentos_bs;
-            $monto_instrumentos_usd_total = $monto_instrumentos_usd;
+            $monto_instrumentos_bs_total    = $monto_instrumentos_bs;
+            $monto_instrumentos_usd_total   = $monto_instrumentos_usd;
             $monto_instrumentos_pesos_total = $monto_instrumentos_pesos;
 
             $montoabonar = $totalPago;
@@ -764,8 +764,8 @@ class SaacxcController extends Controller
         foreach ($instrumentos as $inst) {
             $montoInstrumento = floatval($inst['monto']);
             // Calcular qué porcentaje de este instrumento va a esta sucursal
-            $porcentajeInstrumento = $montoInstrumento / $montoInstrumentosGlobal;
-            $montoParaSucursal = round($montoTotalInstrumentosSucursal * $porcentajeInstrumento, 2);
+            //$porcentajeInstrumento = $montoInstrumento / $montoInstrumentosGlobal;
+            $montoParaSucursal = $montoTotalInstrumentosSucursal; //round($montoTotalInstrumentosSucursal * $porcentajeInstrumento, 2);
 
             if ($montoParaSucursal > 0) {
                 $saipacxc = new Saipacxc();
