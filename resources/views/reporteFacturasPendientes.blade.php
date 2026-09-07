@@ -228,7 +228,7 @@
 
                 <!-- Tabla de resultados con scroll -->
                 <div class="table-scroll">
-                    <table class="table table-striped table-bordered table-hover">
+                    <table class="table table-striped table-bordered table-hover" id="casheatable">
                         <thead>
                         <tr>
                             <th style="width: 8%;">Fecha</th>
@@ -306,8 +306,10 @@
                 <div class="mt-2 small text-muted d-flex justify-content-between">
 
                     <div>
-                        <i class="fas fa-file-pdf text-danger"></i>
-                        <a href="#" onclick="window.print()" class="text-decoration-none">Imprimir</a>
+                        <button type="button" class="btn btn-sm btn-outline-primary me-2" style="height: 43px;"
+                                onclick="exportarExcel('casheatable')">
+                            <i class="bi bi-file-excel"></i> Exportar a Excel
+                        </button>
 
                     </div>
                 </div>
