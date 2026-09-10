@@ -381,7 +381,7 @@
 
                     <a href="/krece" class="quick-action-btn">
                         <i class="bi bi-list-ul"></i> Krece
-                    </a>z
+                    </a>
 
                 </div>
             </div>
