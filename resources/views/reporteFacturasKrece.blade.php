@@ -143,7 +143,7 @@
 
             <div class="card-body">
                 <!-- Filtros Compactos -->
-                <form method="GET" action="{{ route('reporte.facturas.pendientes') }}" class="filtros-row">
+                <form method="GET" action="{{ route('reporte.krece') }}" class="filtros-row">
                     <div class="row g-1">
                         <div class="col-md-2">
                             <label>Fecha Inicio</label>
@@ -173,7 +173,7 @@
                             </button>
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
-                            <a href="{{ route('reporte.facturas.pendientes') }}" class="btn btn-secondary btn-sm w-100">
+                            <a href="{{ route('reporte.krece') }}" class="btn btn-secondary btn-sm w-100">
                                 <i class="fas fa-undo"></i> Limpiar
                             </a>
                         </div>
@@ -228,7 +228,7 @@
 
                 <!-- Tabla de resultados con scroll -->
                 <div class="table-scroll">
-                    <table class="table table-striped table-bordered table-hover" id="casheatable">
+                    <table class="table table-striped table-bordered table-hover" id="krecetable">
                         <thead>
                         <tr>
                             <th style="width: 8%;">Fecha</th>
@@ -307,7 +307,7 @@
 
                     <div>
                         <button type="button" class="btn btn-sm btn-outline-primary me-2" style="height: 43px;"
-                                onclick="exportarExcel('casheatable')">
+                                onclick="exportarExcel('krecetable')">
                             <i class="bi bi-file-excel"></i> Exportar a Excel
                         </button>
 

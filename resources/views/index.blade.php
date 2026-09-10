@@ -374,6 +374,15 @@
                     <a href="/seriales/historial" class="quick-action-btn">
                         <i class="bi bi-list-ul"></i> Historial Seriales
                     </a>
+
+                    <a href="/cashea" class="quick-action-btn">
+                        <i class="bi bi-list-ul"></i> Cashea
+                    </a>
+
+                    <a href="/krece" class="quick-action-btn">
+                        <i class="bi bi-list-ul"></i> Krece
+                    </a>z
+
                 </div>
             </div>
         </div>

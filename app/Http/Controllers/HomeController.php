@@ -88,7 +88,79 @@ class HomeController extends Controller
             'restante_total' => $facturas->sum('restante')
         ];
 
-        return view('reporteFacturasPendientes', compact(
+        return view('reporteFacturasCashea', compact(
+            'facturas',
+            'sucursales',
+            'fechaInicio',
+            'fechaFin',
+            'sucursalId',
+            'totales'
+        ));
+    }
+
+    public function reporteFacturasKrece(Request $request)
+    {
+        // Validaciones básicas de filtros (opcional)
+        $request->validate([
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin'    => 'nullable|date|after_or_equal:fecha_inicio',
+            'fk_sucursal'  => 'nullable|integer|exists:sasucursal,id',
+        ]);
+
+        // Obtener filtros del request
+        $fechaInicio = $request->fecha_inicio ?? '';
+        $fechaFin    = $request->fecha_fin ?? '';
+        $sucursalId  = $request->fk_sucursal;
+
+        // Obtener sucursales a las que el usuario tiene acceso
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",", $arraysucursales);
+
+        // Construir la consulta base
+        $query = Safact::selectRaw("
+        fechat,
+        descrip as cliente,
+        id3 as cedula, numeror,
+        ((contado + credito)/ tasa_dolar) * signo as monto_factura,
+        (contado / tasa_dolar) * signo as abonado,
+        ( credito / tasa_dolar)   * signo  as restante,
+        fk_sucursal,
+        numerod,
+        tipofac
+    ")
+            ->whereIn('codclie', ['01010101']) // cliente 01010101
+            ->whereIn('tipofac', ['A', 'B']) // Facturas de venta (A=Factura, Z=Factura ajuste)
+            ->whereBetween('fechat', [
+                Carbon::parse($fechaInicio)->startOfDay()->format('Y-m-d H:i:s'),
+                Carbon::parse($fechaFin)->endOfDay()->format('Y-m-d H:i:s')
+            ]) ;
+
+        // Aplicar filtro de sucursal si se seleccionó
+        if (!empty($sucursalId)) {
+            $query->where('fk_sucursal', $sucursalId);
+        }
+
+        //dd( $query->toSql());
+
+        // Ordenar y obtener resultados
+        $facturas = $query->orderBy('fechat', 'desc')
+            ->orderBy('numerod', 'desc')
+            ->get();
+
+        // Obtener lista de sucursales para el filtro
+        $sucursales = Sasucursal::where('fk_comercial', session('comercialid', 1))
+            ->whereRaw("id in ($arraysucursales)")
+            ->orderBy('descrip')
+            ->get();
+
+        // Totales del reporte
+        $totales = [
+            'monto_total'    => $facturas->sum('monto_factura'),
+            'abonado_total'  => $facturas->sum('abonado'),
+            'restante_total' => $facturas->sum('restante')
+        ];
+
+        return view('reporteFacturasKrece', compact(
             'facturas',
             'sucursales',
             'fechaInicio',

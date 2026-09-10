@@ -83,8 +83,8 @@ use App\Http\Controllers\TramitarCompraController;
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::match(['GET', 'POST'], '/cashea', [HomeController::class, 'reporteFacturasCashea'])
-        ->name('reporte.facturas.pendientes');
+    Route::match(['GET', 'POST'], '/cashea', [HomeController::class, 'reporteFacturasCashea'])->name('reporte.cashea');
+    Route::match(['GET', 'POST'], '/krece', [HomeController::class, 'reporteFacturasKrece'])->name('reporte.krece');
 
     // Ruta para cambiar de comercial
     Route::get('/cambiarcomercial/{comercialId}', [ComercialDashboardController::class, 'cambiarComercial'])
