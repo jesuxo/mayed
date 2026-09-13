@@ -190,7 +190,6 @@ class HomeController extends Controller
             ->whereRaw("id in ($arraysucursales)")
             ->orderBy('descrip','asc')->get();
 
-
         $fechasreport = $request->fechasreport ?? '';
         $fksucursal   = $request->fksucursal ?? '';
         $fkestacion   = $request->fkestacion ?? '';
@@ -234,7 +233,8 @@ class HomeController extends Controller
             ->select([
                 'f.fk_sucursal',
                 'f.numerod',
-                'f.codesta',
+                'f.codesta',          // ✅ FIX: incluir codesta en el SELECT
+                'f.tipofac',          // ✅ FIX: incluir tipofac en el SELECT
                 'b.coditem',
                 'd.codinst',
                 DB::raw('((f.dolares-f.vuelto_dolares)*f.Signo) as dolares'),
@@ -269,6 +269,7 @@ class HomeController extends Controller
                 $join->on('b.fk_sucursal', '=', 'f.fk_sucursal')
                     ->on('b.numerod', '=', 'f.numerod')
                     ->on('b.tipofac', '=', 'f.tipofac')
+                    ->on('b.codesta', '=', 'f.codesta')   // ✅ FIX: incluir codesta en el JOIN
                     ->where('b.nrolineac', '=', 0)
                     ->where('b.EsServ', '=', 0)
                     ->where('b.costodoriginal', '>', 0);
@@ -337,8 +338,11 @@ class HomeController extends Controller
                 $vsucursal[$venta->fk_sucursal]['cant']    += $venta->cant;
                 $vsucursal[$venta->fk_sucursal]['venta']   += $venta->venta;
 
-                if(!isset($checkfact[$venta->numerod])){
-                    $checkfact[$venta->numerod] = 1;
+                // ✅ FIX: clave compuesta única por factura real (sucursal + tipofac + numerod + codesta)
+                $checkfactKey = $venta->fk_sucursal . '-' . $venta->tipofac . '-' . $venta->numerod . '-' . $venta->codesta;
+
+                if(!isset($checkfact[$checkfactKey])){
+                    $checkfact[$checkfactKey] = 1;
 
                     if(!isset($listado[$venta->fk_sucursal]['dolares']))
                         $listado[$venta->fk_sucursal]['dolares'] =0;
@@ -381,6 +385,8 @@ class HomeController extends Controller
                     $listado[$venta->fk_sucursal]['totalventa'] += $venta->totalventa;
                 }
 
+                // ✅ NOTA: el acumulado por instancia SÍ debe sumar todas las líneas
+                // (cada línea de producto aporta a la instancia correspondiente)
                 foreach ($instancias as $instancia) {
                     $len = strlen($instancia->codalte);
                     if(substr($venta->codalte,0, $len) == $instancia->codalte){
