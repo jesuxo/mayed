@@ -186,7 +186,7 @@
 
     {{-- ==================== FILTROS ==================== --}}
     <div class="report-header">
-        <h4>Reporte de Ventas</h4>
+        <h4 style="color: white">Reporte de Ventas</h4>
         <p>Desde {{$fecha1}} hasta {{$fecha2}}</p>
     </div>
 
