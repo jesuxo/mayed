@@ -269,7 +269,6 @@ class HomeController extends Controller
                 $join->on('b.fk_sucursal', '=', 'f.fk_sucursal')
                     ->on('b.numerod', '=', 'f.numerod')
                     ->on('b.tipofac', '=', 'f.tipofac')
-                    ->on('b.codesta', '=', 'f.codesta')   // ✅ FIX: incluir codesta en el JOIN
                     ->where('b.nrolineac', '=', 0)
                     ->where('b.EsServ', '=', 0)
                     ->where('b.costodoriginal', '>', 0);
