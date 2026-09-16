@@ -112,9 +112,10 @@ class SaacxcController extends Controller
         }
 
         // Usar un rango de ±2 segundos para absorber diferencias de milisegundos
-        $fechaCarbon = Carbon::parse($fechaGrupo);
+        /*$fechaCarbon = Carbon::parse($fechaGrupo);
         $desde = $fechaCarbon->copy()->subSeconds(2)->format('Y-m-d H:i:s');
         $hasta = $fechaCarbon->copy()->addSeconds(2)->format('Y-m-d H:i:s');
+        */
 
         $pagos = Saacxc::with(['cliente', 'sucursalcli'])
             ->where('codclie', $codclie)
