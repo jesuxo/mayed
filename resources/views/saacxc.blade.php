@@ -369,7 +369,7 @@
                                                 @if($movimiento->es_grupo ?? false)
                                                     <button type="button"
                                                             class="btn btn-sm btn-outline-primary btn-ver-grupo"
-                                                            data-codclie="{{ $movimiento->codclie }}"
+                                                            data-codclie="{{ $movimiento->cliente->codclie }}"
                                                             data-fecha="{{ \Carbon\Carbon::parse($movimiento->created_at)->format('Y-m-d H:i:s') }}"
                                                             data-cliente="{{ $movimiento->cliente->descrip ?? '' }}">
                                                         <i class="bi bi-eye"></i> Ver
