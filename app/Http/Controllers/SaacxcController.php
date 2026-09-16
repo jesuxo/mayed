@@ -21,7 +21,7 @@ class SaacxcController extends Controller
     public function saacxc(Request $request, $id = null)
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
-        $arraysucursales = implode(",",$arraysucursales);
+        $arraysucursales = implode(",", $arraysucursales);
 
         if (!isset($id))
             $id = '';
@@ -33,12 +33,42 @@ class SaacxcController extends Controller
             $comercial = 1;
         }
 
-        $cxcprocesos = Saacxc::with('cliente')
-                        ->whereIn('tipocxc', [98, 99])
-                        ->whereRaw("descargar > 0 and fk_sucursal in ($arraysucursales)")
-                        ->orderBy('id','desc')->get();
+        // Traer todos los procesos
+        $registros = Saacxc::with('cliente')
+            ->whereIn('tipocxc', [98, 99])
+            ->whereRaw("descargar > 0 and fk_sucursal in ($arraysucursales)")
+            ->orderBy('id', 'desc')
+            ->get();
 
-        $sucursales = Sasucursal::where("fk_comercial", $comercial)->whereRaw("id in ($arraysucursales)")->orderBy('descrip')->get();
+        // Agrupar por codclie + created_at truncado a segundos
+        $cxcprocesos = $registros
+            ->groupBy(function ($item) {
+                return $item->codclie . '|' . Carbon::parse($item->created_at)->format('Y-m-d H:i:s');
+            })
+            ->map(function ($grupo) {
+                $primero = $grupo->first();
+
+                // Sumar montos
+                $montoTotal = $grupo->sum('montodolares');
+
+                // Si solo hay un registro, es individual
+                $esGrupo = $grupo->count() > 1;
+
+                $primero->monto_total_grupo   = $montoTotal;
+                $primero->cantidad_sucursales = $grupo->count();
+                $primero->es_grupo            = $esGrupo;
+                $primero->registros_grupo     = $grupo;
+                // Clave única para identificar el grupo desde el frontend
+                $primero->grupo_key           = $primero->codclie . '_' . Carbon::parse($primero->created_at)->format('YmdHis');
+
+                return $primero;
+            })
+            ->values();
+
+        $sucursales = Sasucursal::where("fk_comercial", $comercial)
+            ->whereRaw("id in ($arraysucursales)")
+            ->orderBy('descrip')
+            ->get();
 
         $sucursalselected = '';
         foreach ($sucursales as $sucursal) {
@@ -51,17 +81,15 @@ class SaacxcController extends Controller
         $fechasreport = (isset($request->fechasreport)) ? $request->fechasreport : '';
 
         $fechasaux = str_replace(' ', '', $fechasreport);
-        $fecha1 = '';
-        $fecha2 = '';
-        $d1 = $m1 = $y1 = '';
-        $d2 = $m2 = $y2 = '';
+        $fecha1 = $fecha2 = '';
+        $d1 = $m1 = $y1 = $d2 = $m2 = $y2 = '';
 
-        if (strpos($fechasaux, "to")){
+        if (strpos($fechasaux, "to")) {
             list($fecha1, $fecha2) = explode("to", $fechasaux);
             list($d1, $m1, $y1) = explode("/", $fecha1); $fecha1 = "$y1-$m1-$d1";
             list($d2, $m2, $y2) = explode("/", $fecha2); $fecha2 = "$y2-$m2-$d2";
-        }else {
-            if($fechasreport  != ''){
+        } else {
+            if ($fechasreport != '') {
                 list($d1, $m1, $y1) = explode("/", $fechasreport);
                 $fecha1 = "$d1/$m1/$y1";
                 $fecha2 = "$d1/$m1/$y1";
@@ -71,7 +99,40 @@ class SaacxcController extends Controller
             }
         }
 
-        return view('saacxc', compact('cxcprocesos', 'fecha1','fecha2', 'fechasreport', 'id', 'sucursales', 'sucursalselected', 'comercial') );
+        return view('saacxc', compact('cxcprocesos', 'fecha1', 'fecha2', 'fechasreport', 'id', 'sucursales', 'sucursalselected', 'comercial'));
+    }
+
+    public function detalleGrupoPago(Request $request)
+    {
+        $codclie    = $request->codclie;
+        $fechaGrupo = $request->fecha_grupo; // formato: Y-m-d H:i:s
+
+        if (!$codclie || !$fechaGrupo) {
+            return response()->json(['success' => false, 'message' => 'Datos incompletos'], 400);
+        }
+
+        // Usar un rango de ±2 segundos para absorber diferencias de milisegundos
+        $fechaCarbon = Carbon::parse($fechaGrupo);
+        $desde = $fechaCarbon->copy()->subSeconds(2)->format('Y-m-d H:i:s');
+        $hasta = $fechaCarbon->copy()->addSeconds(2)->format('Y-m-d H:i:s');
+
+        $pagos = Saacxc::with(['cliente', 'sucursalcli'])
+            ->where('codclie', $codclie)
+            ->whereIn('tipocxc', [98, 99])
+            ->whereBetween('created_at', [$desde, $hasta])
+            ->orderBy('fk_sucursal')
+            ->get();
+
+        $total = $pagos->sum('montodolares');
+
+        $vista = view('saacxc_detalle_grupo', compact('pagos', 'total'))->render();
+
+        return response()->json([
+            'success'  => true,
+            'vista'    => $vista,
+            'total'    => $total,
+            'cantidad' => $pagos->count()
+        ]);
     }
 
     public function cxclist(Request $request)

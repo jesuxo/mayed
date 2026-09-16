@@ -330,6 +330,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/cxcdescuento',  'aplicarDescuento')->name('cxcdescuento');
     });
 
+    Route::post('/cxc/detalle-grupo', [SaacxcController::class, 'detalleGrupoPago'])->name('cxc.detalle.grupo');
+
     Route::get('/productos/{codprod}/datos-edit', [SaprodController::class, 'getDatosEdit'])
         ->name('productos.datos-edit');
 
