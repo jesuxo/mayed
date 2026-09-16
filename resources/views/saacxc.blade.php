@@ -614,7 +614,7 @@
                                                         <div class="mt-2 text-end">
                                                             <button type="button"
                                                                     class="btn btn-sm btn-outline-primary btn-ver-grupo"
-                                                                    data-codclie="{{ $proceso->codclie }}"
+                                                                    data-codclie="{{ $proceso->cliente->codclie }}"
                                                                     data-fecha="{{ \Carbon\Carbon::parse($proceso->created_at)->format('Y-m-d H:i:s') }}"
                                                                     data-cliente="{{ $proceso->cliente->descrip ?? '' }}">
                                                                 <i class="bi bi-eye"></i> Ver distribución
