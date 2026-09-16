@@ -322,6 +322,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/procesar-pago-web', [SaacxcController::class, 'procesarPagoWeb'])->name('procesar.pago.web');
     });
 
+    Route::post('/cxc/detalle-grupo', [SaacxcController::class, 'detalleGrupoPago'])->name('cxc.detalle.grupo');
+
     Route::controller(SaacxcController::class)->group(function () {
         Route::match(['get','post'],'cxc/{id?}', 'saacxc')->name('saacxc');
         Route::post('/cxclist', 'cxclist');
@@ -330,7 +332,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/cxcdescuento',  'aplicarDescuento')->name('cxcdescuento');
     });
 
-    Route::post('/cxc/detalle-grupo', [SaacxcController::class, 'detalleGrupoPago'])->name('cxc.detalle.grupo');
 
     Route::get('/productos/{codprod}/datos-edit', [SaprodController::class, 'getDatosEdit'])
         ->name('productos.datos-edit');
