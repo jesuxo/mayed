@@ -119,7 +119,7 @@ class SaacxcController extends Controller
         $pagos = Saacxc::with(['cliente', 'sucursalcli'])
             ->where('codclie', $codclie)
             ->whereIn('tipocxc', [98, 99])
-            ->whereBetween('created_at', [$desde, $hasta])
+            ->where('created_at', $fechaGrupo)
             ->orderBy('fk_sucursal')
             ->get();
 
