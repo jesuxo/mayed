@@ -668,7 +668,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="capture('#tablaExistenciasModal')">
+                    <button type="button" class="btn btn-secondary"  onclick="capture('#tablaExistenciasModal')">
                         <i class="bi bi-camera"></i> Capturar
                     </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">

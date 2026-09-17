@@ -6,9 +6,8 @@
         border-radius: 0;
         overflow: hidden;
         background: transparent;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
+        height: auto;
+        display: block;
     }
 
     .table-existencias-modal {
@@ -27,9 +26,6 @@
         text-transform: uppercase;
         letter-spacing: 0.3px;
         border: none;
-        position: sticky;
-        top: 0;
-        z-index: 10;
         white-space: nowrap;
     }
 
@@ -84,9 +80,6 @@
         font-size: 0.8rem;
         border-top: 2px solid #0056a7;
         color: #fff !important;
-        position: sticky;
-        bottom: 0;
-        z-index: 10;
     }
 
     /* Badges de cantidad */
@@ -167,11 +160,11 @@
         font-size: 0.65rem;
     }
 
-    /* Scroll personalizado */
+    /* Contenedor de scroll: SIN overflow ni altura fija */
     .scroll-existencias-modal {
-        flex: 1;
-        overflow: auto;
-        min-height: 200px;
+        flex: none;
+        overflow: visible;
+        min-height: auto;
     }
 
     .scroll-existencias-modal::-webkit-scrollbar {
@@ -404,11 +397,10 @@
         flex-shrink: 0;
     }
 
-    /* Contenedor de la tabla */
+    /* Contenedor de la tabla: SIN flex ni altura fija */
     .table-wrapper-modal {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
+        flex: none;
+        display: block;
         min-height: 0;
     }
 
@@ -622,7 +614,7 @@
                 @endforelse
 
                 @if(count($productos) > 0)
-                    <!-- FILA DE TOTALES (sticky bottom) -->
+                    <!-- FILA DE TOTALES -->
                     <tr class="fila-total" bgcolor="#0072c5">
                         <td colspan="3" align="right">
                             <strong>TOTALES</strong>
@@ -663,67 +655,14 @@
 <script>
     // ==========================================
     // AJUSTAR ALTURA DEL SCROLL DINÁMICAMENTE
+    // (Neutralizada: la tabla crece según su contenido)
     // ==========================================
 
     function ajustarAlturaScroll() {
         var scrollContainer = document.getElementById('scrollExistenciasModal');
-        if (!scrollContainer) return;
-
-        // Obtener el contenedor principal del modal
-        var modalContent = document.getElementById('contentviewprodcodalte');
-        if (!modalContent) return;
-
-        // Obtener el card que contiene todo
-        var card = document.getElementById('cardExistenciasModal');
-        if (!card) return;
-
-        // Calcular altura disponible
-        var modalBody = modalContent.closest('.modal-body');
-        if (!modalBody) {
-            // Si no está dentro de un modal-body, usar la ventana
-            var windowHeight = window.innerHeight;
-            var cardRect = card.getBoundingClientRect();
-            var topOffset = cardRect.top;
-            var bottomOffset = 60; // Margen inferior
-
-            // Obtener altura de los elementos fijos
-            var filterHeight = document.querySelector('.deposito-filter-modal')?.offsetHeight || 0;
-            var infoBarHeight = document.querySelector('.info-bar-modal')?.offsetHeight || 0;
-            var headerHeight = document.querySelector('.modal-header')?.offsetHeight || 60;
-
-            // Altura disponible = ventana - offset superior - elementos fijos - margen
-            var availableHeight = windowHeight - topOffset - headerHeight - filterHeight - infoBarHeight - bottomOffset;
-
-            // Aplicar altura mínima
-            if (availableHeight > 200) {
-                scrollContainer.style.maxHeight = availableHeight + 'px';
-                scrollContainer.style.height = availableHeight + 'px';
-            } else {
-                scrollContainer.style.maxHeight = '300px';
-                scrollContainer.style.height = '300px';
-            }
-
-            return;
-        }
-
-        // Obtener altura del modal-body
-        var bodyHeight = modalBody.clientHeight;
-
-        // Obtener altura de elementos fijos dentro del card
-        var filterHeight = document.querySelector('.deposito-filter-modal')?.offsetHeight || 0;
-        var infoBarHeight = document.querySelector('.info-bar-modal')?.offsetHeight || 0;
-        var padding = 30; // Padding adicional
-
-        // Calcular altura para el scroll
-        var scrollHeight = bodyHeight - filterHeight - infoBarHeight - padding;
-
-        // Aplicar altura mínima
-        if (scrollHeight > 150) {
-            scrollContainer.style.maxHeight = scrollHeight + 'px';
-            scrollContainer.style.height = scrollHeight + 'px';
-        } else {
-            scrollContainer.style.maxHeight = '250px';
-            scrollContainer.style.height = '250px';
+        if (scrollContainer) {
+            scrollContainer.style.maxHeight = '';
+            scrollContainer.style.height = '';
         }
     }
 
@@ -943,7 +882,6 @@
                     content.innerHTML = response;
                     setTimeout(function() {
                         inicializarFiltroModal();
-                        ajustarAlturaScroll();
                     }, 100);
                 }
             },
@@ -1007,7 +945,6 @@
                     content.innerHTML = response;
                     setTimeout(function() {
                         inicializarFiltroModal();
-                        ajustarAlturaScroll();
                     }, 100);
                 }
             },
@@ -1055,9 +992,6 @@
                 row.style.borderLeft = '3px solid #28a745';
             }
         });
-
-        // Ajustar altura después de inicializar
-        setTimeout(ajustarAlturaScroll, 50);
     }
 
     // ==========================================
@@ -1072,13 +1006,9 @@
         $('#viewprodcodaltemodal').on('shown.bs.modal', function() {
             setTimeout(function() {
                 inicializarFiltroModal();
-                ajustarAlturaScroll();
             }, 300);
         });
 
-        // Reajustar al redimensionar la ventana
-        $(window).on('resize', function() {
-            ajustarAlturaScroll();
-        });
+        // Ya no se reajusta altura al redimensionar (no hay altura fija)
     });
 </script>
