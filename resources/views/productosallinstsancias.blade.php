@@ -540,7 +540,8 @@
     <!-- ========================================== -->
     <div class="table-wrapper-modal">
         <div class="scroll-existencias-modal" id="scrollExistenciasModal">
-            <table class="table-existencias-modal table table-borderless table-centered align-middle table-nowrap mb-0" id="tablaExistenciasModal">
+            <table class="table-existencias-modal table table-borderless table-centered align-middle table-nowrap mb-0"
+                   id="tablaExistenciasModal">
                 <thead>
                 <tr>
                     <th width="5%" class="text-center">CÓD</th>
