@@ -611,7 +611,10 @@
                                                         <span>{{ $proceso->formattedDate }}</span>
                                                     </div>
                                                     @if($proceso->es_grupo)
-                                                        <div class="mt-2 text-end">
+                                                        <div class="mt-2 d-flex justify-content-between">
+                                                            <div style="text-align: left">
+                                                                {{$proceso->Document}}
+                                                            </div>
                                                             <button type="button"
                                                                     class="btn btn-sm btn-outline-primary btn-ver-grupo"
                                                                     data-codclie="{{ $proceso->cliente->codclie }}"
