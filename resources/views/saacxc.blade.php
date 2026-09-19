@@ -360,6 +360,9 @@
                                                         {{ \Carbon\Carbon::parse($movimiento->created_at)->format('d/m/Y H:i') }}
                                                     </span>
                                                 </div>
+                                                <div style="text-align: left" class="small text-muted">
+                                                    {{$movimiento->Document}}
+                                                </div>
                                             </div>
                                             <div class="ms-2 d-flex flex-column gap-1">
                                                 <span class="badge {{ $movimiento->descargar == 1 ? 'bg-warning text-white' : 'bg-success text-white' }}">
