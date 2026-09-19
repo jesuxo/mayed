@@ -612,7 +612,7 @@
                                                     </div>
                                                     @if($proceso->es_grupo)
                                                         <div class="mt-2 d-flex justify-content-between">
-                                                            <div style="text-align: left">
+                                                            <div style="text-align: left" class="small text-muted">
                                                                 {{$proceso->Document}}
                                                             </div>
                                                             <button type="button"
