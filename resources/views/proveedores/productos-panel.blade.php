@@ -342,11 +342,11 @@
                                             </tr>
                                         @endforeach
                                         <tfoot style="border-top: 1px solid #eeeeee">
-                                            <tr class="fw-bold">
-                                                <td>TOTAL</td>
-                                                <td class="text-center">{{ number_format($total_unidades, 0) }}</td>
-                                                <td class="text-end">100%</td>
-                                            </tr>
+                                        <tr class="fw-bold">
+                                            <td>TOTAL</td>
+                                            <td class="text-center">{{ number_format($total_unidades, 0) }}</td>
+                                            <td class="text-end">100%</td>
+                                        </tr>
                                         </tfoot>
                                         </tbody>
                                     </table>
@@ -429,11 +429,21 @@
             <div class="card mt-3">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h6 class="mb-0"><i class="ri-list-check"></i> Análisis Detallado de Productos</h6>
-                    @if(isset($filtro) && $filtro == 'con_stock')
-                        <span class="badge bg-success">Mostrando solo productos con stock</span>
-                    @elseif(isset($filtro) && $filtro == 'sin_stock')
-                        <span class="badge bg-warning">Mostrando solo productos sin stock</span>
-                    @endif
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group input-group-sm" style="width: 300px;">
+                            <span class="input-group-text"><i class="ri-search-line"></i></span>
+                            <input type="text" id="busquedaProductos" class="form-control"
+                                   placeholder="Buscar código, producto o marca...">
+                            <button class="btn btn-outline-secondary" type="button" id="limpiarBusqueda">
+                                <i class="ri-close-line"></i>
+                            </button>
+                        </div>
+                        @if(isset($filtro) && $filtro == 'con_stock')
+                            <span class="badge bg-success">Mostrando solo productos con stock</span>
+                        @elseif(isset($filtro) && $filtro == 'sin_stock')
+                            <span class="badge bg-warning">Mostrando solo productos sin stock</span>
+                        @endif
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -442,10 +452,12 @@
                             <tr>
                                 <th class="sortable" data-sort="codprod">Código    <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable" data-sort="descrip">Producto  <i class="ri-arrow-up-down-line"></i></th>
-                                <th class="sortable" data-sort="descrip">Marca     <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable" data-sort="marca">Marca     <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="stock">Stock Total <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_sin_venta">Días sin Venta <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_stock">Días Stock <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable text-end" data-sort="ganancia">Ganancia <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable text-end" data-sort="margen">Margen % <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="ultima_compra">Última Compra <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="text-center">Depositos</th>
                             </tr>
@@ -494,6 +506,27 @@
                                             <span class="badge bg-success">{{ number_format($producto->dias_stock, 0) }}</span>
                                         @else
                                             <span class="badge bg-secondary">-</span>
+                                        @endif
+                                    </td>
+
+                                    @php
+                                        $costo = (float) ($producto->preciod ?? 0);
+                                        $precioVenta = (float) ($producto->costod3 ?? 0);
+                                        $ganancia = $precioVenta - $costo;
+                                        $margen = $costo > 0 ? (($precioVenta - $costo) / $costo) * 100 : 0;
+                                    @endphp
+                                        <!-- Ganancia -->
+                                    <td class="text-end {{ $ganancia < 0 ? 'text-danger' : 'text-success' }} fw-bold">
+                                        ${{ number_format($ganancia, 2, ',', '.') }}
+                                    </td>
+                                    <!-- Margen % -->
+                                    <td class="text-end">
+                                        @if($margen > 0)
+                                            <span class="badge bg-success">{{ number_format($margen, 1) }}%</span>
+                                        @elseif($margen < 0)
+                                            <span class="badge bg-danger">{{ number_format($margen, 1) }}%</span>
+                                        @else
+                                            <span class="badge bg-secondary">0%</span>
                                         @endif
                                     </td>
 
@@ -556,8 +589,8 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr>
-                                    <td colspan="8" class="text-center py-4">
+                                <tr id="filaSinProductos">
+                                    <td colspan="10" class="text-center py-4">
                                         <i class="ri-inbox-line fs-1 text-muted"></i>
                                         <p class="text-muted mt-2">No hay productos para mostrar</p>
                                     </td>
@@ -655,19 +688,83 @@
                 return;
             }
 
-            // ========== CARGA DE DETALLES DE LA COMPRA ==========
+            // ============================================================
+            // BÚSQUEDA POR TOKENS (múltiples palabras no contiguas)
+            // ============================================================
+            function filtrarProductos() {
+                const termino = $('#busquedaProductos').val().trim().toLowerCase();
+                const tokens = termino.split(/\s+/).filter(t => t.length > 0);
+
+                let visibles = 0;
+
+                $('#productosTableBody tr').each(function() {
+                    const $fila = $(this);
+
+                    // Ignorar filas de "no hay productos" o "sin resultados"
+                    if ($fila.attr('id') === 'filaSinProductos' || $fila.attr('id') === 'sinResultados') {
+                        return;
+                    }
+                    if ($fila.find('td[colspan]').length > 0) return;
+
+                    // Concatenar todos los campos buscables: código, descripción, marca
+                    const codigo  = $fila.find('td').eq(0).text().toLowerCase();
+                    const descrip = $fila.find('td').eq(1).text().toLowerCase();
+                    const marca   = $fila.find('td').eq(2).text().toLowerCase();
+
+                    const textoCompleto = codigo + ' ' + descrip + ' ' + marca;
+
+                    // La fila se muestra solo si TODOS los tokens están presentes
+                    const coincide = tokens.length === 0 || tokens.every(token => textoCompleto.includes(token));
+
+                    if (coincide) {
+                        $fila.show();
+                        visibles++;
+                    } else {
+                        $fila.hide();
+                    }
+                });
+
+                // Mostrar mensaje si no hay resultados
+                $('#sinResultados').remove();
+                if (visibles === 0 && tokens.length > 0) {
+                    $('#productosTableBody').append(
+                        '<tr id="sinResultados"><td colspan="10" class="text-center py-4">' +
+                        '<i class="ri-search-eye-line fs-1 text-muted"></i>' +
+                        '<p class="text-muted mt-2">No se encontraron productos para: <strong>' +
+                        termino + '</strong></p></td></tr>'
+                    );
+                }
+            }
+
+            let busquedaTimer;
+            $('#busquedaProductos').on('input', function() {
+                clearTimeout(busquedaTimer);
+                busquedaTimer = setTimeout(filtrarProductos, 200); // debounce
+            });
+
+            $('#limpiarBusqueda').on('click', function() {
+                $('#busquedaProductos').val('');
+                filtrarProductos();
+            });
+
+            // Filtrar al inicio (por si acaso)
+            filtrarProductos();
+
+            // ============================================================
+            // CARGA DE DETALLES DE LA COMPRA
+            // ============================================================
             $('.ver-compra').click(function() {
                 const compraId = $(this).data('id');
                 const $modalBody = $('#compraModalBody');
 
                 $modalBody.html(`
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-            <p class="mt-2">Cargando información de la compra...</p>
-        </div>
-    `);
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2">Cargando información de la compra...</p>
+                    </div>
+                `);
 
                 $.ajax({
                     url: '{{ route("compras.documento-ajax") }}',
@@ -681,19 +778,19 @@
                             mostrarDetalleCompra(response.compra, response.items);
                         } else {
                             $modalBody.html(`
-                    <div class="alert alert-danger">
-                        <i class="ri-error-warning-line"></i> Error al cargar el detalle de la compra
-                    </div>
-                `);
+                                <div class="alert alert-danger">
+                                    <i class="ri-error-warning-line"></i> Error al cargar el detalle de la compra
+                                </div>
+                            `);
                         }
                     },
                     error: function(xhr) {
                         console.error('Error:', xhr);
                         $modalBody.html(`
-                <div class="alert alert-danger">
-                    <i class="ri-error-warning-line"></i> Error al cargar el detalle de la compra
-                </div>
-            `);
+                            <div class="alert alert-danger">
+                                <i class="ri-error-warning-line"></i> Error al cargar el detalle de la compra
+                            </div>
+                        `);
                     }
                 });
             });
@@ -713,85 +810,83 @@
                     totalUnidades += item.cantidad;
                 });
 
-                // Aplicar signo según tipo de compra
-                const totalFinal = totalCalculado * signo;
-
                 let itemsHtml = '';
                 items.forEach(function(item) {
                     const itemTotal = item.cantidad * item.preciod;
                     itemsHtml += `
-            <tr>
-                <td><small>${item.coditem}</small></td>
-                <td>${item.descrip1 || 'Sin descripción'}</td>
-                <td class="text-center">${item.cantidad}</td>
-                <td class="text-end">$${Number(item.preciod).toFixed(2)}</td>
-                <td class="text-end">$${Number(item.costod).toFixed(2)}</td>
-                <td class="text-end">$${Number(item.costod2).toFixed(2)}</td>
-                <td class="text-end">$${Number(item.costod3).toFixed(2)}</td>
-                <td class="text-end">$${itemTotal.toFixed(2)}</td>
-            </tr>
-        `;
+                        <tr>
+                            <td><small>${item.coditem}</small></td>
+                            <td>${item.descrip1 || 'Sin descripción'}</td>
+                            <td class="text-center">${item.cantidad}</td>
+                            <td class="text-end">$${Number(item.preciod).toFixed(2)}</td>
+                            <td class="text-end">$${Number(item.costod).toFixed(2)}</td>
+                            <td class="text-end">$${Number(item.costod2).toFixed(2)}</td>
+                            <td class="text-end">$${Number(item.costod3).toFixed(2)}</td>
+                            <td class="text-end">$${itemTotal.toFixed(2)}</td>
+                        </tr>
+                    `;
                 });
 
                 const html = `
-        <div class="mb-3 p-3 bg-light rounded">
-            <div class="row">
-                <div class="col-md-4">
-                    <p><strong>Documento:</strong> ${compra.numerod}</p>
-                    <p><strong>Fecha:</strong> ${new Date(compra.fechae).toLocaleDateString('es-VE')}</p>
-                    <p><strong>Tipo:</strong> <span class="badge bg-${tipoColor}">${tipoTexto}</span></p>
-                </div>
-                <div class="col-md-4">
-                    <p><strong>Proveedor:</strong> ${compra.codprov}</p>
-                    <p><strong>Sucursal:</strong> ${compra.sucursal ? compra.sucursal.descrip : 'N/A'}</p>
-                    <p><strong>Total Unidades:</strong> <span class="fw-bold">${totalUnidades}</span></p>
-                </div>
-                <div class="col-md-4">
-                    <p><strong>Total monto:</strong> <span class="fw-bold">$${totalCalculado.toFixed(2)}</span></p>
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Documento:</strong> ${compra.numerod}</p>
+                                <p><strong>Fecha:</strong> ${new Date(compra.fechae).toLocaleDateString('es-VE')}</p>
+                                <p><strong>Tipo:</strong> <span class="badge bg-${tipoColor}">${tipoTexto}</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Proveedor:</strong> ${compra.codprov}</p>
+                                <p><strong>Sucursal:</strong> ${compra.sucursal ? compra.sucursal.descrip : 'N/A'}</p>
+                                <p><strong>Total Unidades:</strong> <span class="fw-bold">${totalUnidades}</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Total monto:</strong> <span class="fw-bold">$${totalCalculado.toFixed(2)}</span></p>
+                            </div>
+                        </div>
+                        ${compra.descrip ? `<div class="mt-2"><strong>Observaciones:</strong> ${compra.descrip}</div>` : ''}
+                    </div>
 
-                </div>
-            </div>
-            ${compra.descrip ? `<div class="mt-2"><strong>Observaciones:</strong> ${compra.descrip}</div>` : ''}
-        </div>
-
-        <h6 class="mb-2">Productos</h6>
-        <div class="table-responsive">
-            <table class="table table-sm table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>Código</th>
-                        <th>Producto</th>
-                        <th class="text-center">Cantidad</th>
-                        <th class="text-end">Precio</th>
-                        <th class="text-end">Costo</th>
-                        <th class="text-end">Costo2</th>
-                        <th class="text-end">Costo3</th>
-                        <th class="text-end">Total Item</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${itemsHtml}
-                </tbody>
-                <tfoot>
-                    <tr class="fw-bold">
-                        <td colspan="3" class="text-end">TOTALES:</td>
-                        <td class="text-end">-</td>
-                        <td class="text-end">-</td>
-                        <td class="text-end">-</td>
-                        <td class="text-end">-</td>
-                        <td class="text-end ${signo < 0 ? 'text-danger' : 'text-success'}">
-                            $${totalCalculado.toFixed(2)}
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    `;
+                    <h6 class="mb-2">Productos</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Producto</th>
+                                    <th class="text-center">Cantidad</th>
+                                    <th class="text-end">Precio</th>
+                                    <th class="text-end">Costo</th>
+                                    <th class="text-end">Costo2</th>
+                                    <th class="text-end">Costo3</th>
+                                    <th class="text-end">Total Item</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="3" class="text-end">TOTALES:</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end">-</td>
+                                    <td class="text-end ${signo < 0 ? 'text-danger' : 'text-success'}">
+                                        $${totalCalculado.toFixed(2)}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
 
                 $('#compraModalBody').html(html);
             }
 
-            // ... (código de gráficos existente) ...
+            // ============================================================
+            // GRÁFICO TOP PRODUCTOS
+            // ============================================================
             @if(isset($top_productos) && count($top_productos) > 0)
                 try {
                 var ctx = document.getElementById('topProductosChart').getContext('2d');
@@ -851,7 +946,9 @@
             $('#topProductosChart').parent().html('<div class="alert alert-info">No hay ventas en el período seleccionado</div>');
             @endif
 
-            // Gráfico de Distribución
+            // ============================================================
+            // GRÁFICO DISTRIBUCIÓN
+            // ============================================================
             @if(isset($kpi) && ($kpi['total_ventas'] > 0 || $kpi['valor_inventario'] > 0 || $kpi['total_compras'] > 0))
                 try {
                 var ctx2 = document.getElementById('distribucionChart').getContext('2d');
@@ -893,7 +990,9 @@
             $('#distribucionChart').parent().html('<div class="alert alert-info">No hay datos suficientes para mostrar el gráfico</div>');
             @endif
 
-            // ========== ORDENAMIENTO DE TABLA ==========
+            // ============================================================
+            // ORDENAMIENTO DE TABLA
+            // ============================================================
             let currentSort = {
                 column: 'stock',
                 direction: 'desc'
@@ -914,59 +1013,77 @@
                 currentSort.direction = direction;
             });
 
+            // Detectar índice de columna dinámicamente desde el <thead>
+            function getColumnIndexBySort(column) {
+                let idx = -1;
+                $('#productosTable thead th').each(function(i) {
+                    if ($(this).data('sort') === column) {
+                        idx = i;
+                        return false;
+                    }
+                });
+                return idx;
+            }
+
             function sortTable(column, direction) {
                 const tbody = $('#productosTableBody');
                 const rows = tbody.find('tr').get();
 
+                const idx = getColumnIndexBySort(column);
+                if (idx === -1) return;
+
                 rows.sort(function(a, b) {
+                    // Ignorar filas sin datos
+                    if ($(a).find('td[colspan]').length > 0) return 0;
+                    if ($(b).find('td[colspan]').length > 0) return 0;
+
                     let aVal, bVal;
 
                     switch(column) {
                         case 'codprod':
-                            aVal = $(a).find('td:eq(0)').text().trim();
-                            bVal = $(b).find('td:eq(0)').text().trim();
+                            aVal = $(a).find('td').eq(idx).text().trim();
+                            bVal = $(b).find('td').eq(idx).text().trim();
                             break;
                         case 'descrip':
-                            aVal = $(a).find('td:eq(1)').text().trim();
-                            bVal = $(b).find('td:eq(1)').text().trim();
+                        case 'marca':
+                            aVal = $(a).find('td').eq(idx).text().trim().toLowerCase();
+                            bVal = $(b).find('td').eq(idx).text().trim().toLowerCase();
                             break;
                         case 'stock':
-                            aVal = parseFloat($(a).find('td:eq(2)').text().replace(/\./g, '').replace(',', '.')) || 0;
-                            bVal = parseFloat($(b).find('td:eq(2)').text().replace(/\./g, '').replace(',', '.')) || 0;
+                            aVal = parseFloat($(a).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
+                            bVal = parseFloat($(b).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
                             break;
                         case 'dias_sin_venta':
-                            let aText = $(a).find('td:eq(3)').text().trim();
-                            let bText = $(b).find('td:eq(3)').text().trim();
-                            aVal = aText === 'Nunca' ? 9999 : (parseInt(aText) || 0);
-                            bVal = bText === 'Nunca' ? 9999 : (parseInt(bText) || 0);
+                            let aText = $(a).find('td').eq(idx).text().trim();
+                            let bText = $(b).find('td').eq(idx).text().trim();
+                            aVal = aText === 'Nunca' ? 999999 : (parseInt(aText) || 0);
+                            bVal = bText === 'Nunca' ? 999999 : (parseInt(bText) || 0);
                             break;
                         case 'dias_stock':
-                            aVal = parseInt($(a).find('td:eq(4)').text()) || 0;
-                            bVal = parseInt($(b).find('td:eq(4)').text()) || 0;
+                            aVal = parseInt($(a).find('td').eq(idx).text()) || 0;
+                            bVal = parseInt($(b).find('td').eq(idx).text()) || 0;
+                            break;
+                        case 'ganancia':
+                            aVal = parseFloat($(a).find('td').eq(idx).text().replace(/[$,]/g, '')) || 0;
+                            bVal = parseFloat($(b).find('td').eq(idx).text().replace(/[$,]/g, '')) || 0;
+                            break;
+                        case 'margen':
+                            aVal = parseFloat($(a).find('td').eq(idx).text().replace(/[%,]/g, '')) || 0;
+                            bVal = parseFloat($(b).find('td').eq(idx).text().replace(/[%,]/g, '')) || 0;
                             break;
                         case 'ultima_compra':
-                            // Buscar la fecha dentro de la celda (td:eq(5))
-                            // La fecha está en un <small> con clase text-muted
-                            const aFechaElement = $(a).find('td:eq(5) small.text-muted').first();
-                            const bFechaElement = $(b).find('td:eq(5) small.text-muted').first();
-
-                            // Extraer solo la fecha (formato dd/mm/yyyy)
+                            const aFechaElement = $(a).find('td').eq(idx).find('small.text-muted').first();
+                            const bFechaElement = $(b).find('td').eq(idx).find('small.text-muted').first();
                             let aFechaStr = aFechaElement.text().trim().split(' ')[0];
                             let bFechaStr = bFechaElement.text().trim().split(' ')[0];
-
-                            // Si hay fecha, convertirla a timestamp, si no, usar 0
+                            aVal = 0; bVal = 0;
                             if (aFechaStr && aFechaStr.match(/\d{2}\/\d{2}\/\d{4}/)) {
                                 const [aDay, aMonth, aYear] = aFechaStr.split('/');
                                 aVal = new Date(aYear, aMonth - 1, aDay).getTime();
-                            } else {
-                                aVal = 0;
                             }
-
                             if (bFechaStr && bFechaStr.match(/\d{2}\/\d{2}\/\d{4}/)) {
                                 const [bDay, bMonth, bYear] = bFechaStr.split('/');
                                 bVal = new Date(bYear, bMonth - 1, bDay).getTime();
-                            } else {
-                                bVal = 0;
                             }
                             break;
                         default:
@@ -985,7 +1102,9 @@
                 });
             }
 
-            // ========== CARGA DE EXISTENCIAS POR DEPÓSITO ==========
+            // ============================================================
+            // CARGA DE EXISTENCIAS POR DEPÓSITO
+            // ============================================================
             $('.ver-existencias').click(function() {
                 const codprod = $(this).data('codprod');
                 const descrip = $(this).data('descrip');
@@ -1030,28 +1149,17 @@
                     return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
             }
-        });
 
-        $(document).ready(function() {
+            // ============================================================
+            // MODAL DE EDICIÓN DE PRODUCTO
+            // ============================================================
             const modal = new bootstrap.Modal(document.getElementById('productoEditModal'));
 
-            // ============================================
             // ABRIR MODAL DE EDICIÓN
-            // ============================================
             $(document).on('click', '.btn-editar-producto', function(e) {
                 e.preventDefault();
 
                 const codprod = $(this).data('id');
-                const fila = $(this).closest('tr');
-
-                // Obtener datos de la fila
-                const codigo     = fila.find('td:eq(0)').text().trim();
-                const descrip    = fila.find('td:eq(1)').text().trim();
-                const existencia = fila.find('td:eq(3)').text().trim();
-                const costo      = fila.find('td:eq(8)').text().replace('$', '').trim();
-                const precio     = fila.find('td:eq(9)').text().replace('$', '').trim();
-                const margen     = fila.find('td:eq(10)').text().trim();
-                const instancia  = fila.find('td:eq(11)').text().trim() || 'Sin instancia';
 
                 // Cargar datos completos del producto vía AJAX
                 Swal.fire({
@@ -1090,8 +1198,8 @@
                             $('#editExistencia').val(producto.existencia_total || 0);
 
                             // Calcular margen
-                            const precioVenta = parseFloat(producto.costod || 0);
-                            const precioCosto = parseFloat(producto.preciodpro || 0);
+                            const precioVenta = parseFloat(producto.costod3 || 0);
+                            const precioCosto = parseFloat(producto.preciod || 0);
                             const margenCalc = precioCosto > 0 ? ((precioVenta - precioCosto) / precioCosto * 100) : 0;
                             $('#editMargen').val(margenCalc.toFixed(1) + '%');
 
@@ -1116,11 +1224,7 @@
                 });
             });
 
-
-
-            // ============================================
-            // GUARDAR PRODUCTO VÍA AJAX
-            // ============================================
+            // GUARDAR PRODUCTO
             $('#productoEditForm').on('submit', function(e) {
                 e.preventDefault();
 
@@ -1154,23 +1258,27 @@
                             const fila = $('.btn-editar-producto[data-id="' + codprod + '"]').closest('tr');
 
                             if (fila.length) {
-                                // Actualizar descripción
-                                fila.find('td:eq(1)').text($('#editDescrip').val());
-                                // Actualizar precios en la tabla
-                                fila.find('td:eq(8)').text('$' + parseFloat($('#editCostod').val() || 0).toFixed(2));
-                                fila.find('td:eq(9)').text('$' + parseFloat($('#editPreciod').val() || 0).toFixed(2));
-                                // Actualizar margen
-                                const precioVenta = parseFloat($('#editCostod').val() || 0);
-                                const precioCosto = parseFloat($('#editPreciodpro').val() || 0);
-                                const nuevoMargen = precioCosto > 0 ? ((precioVenta - precioCosto) / precioCosto * 100) : 0;
-                                const badgeMargen = fila.find('td:eq(10) .badge');
-                                badgeMargen.text(nuevoMargen.toFixed(1) + '%');
+                                // Descripción (idx 1)
+                                fila.find('td').eq(1).text($('#editDescrip').val());
 
-                                // Cambiar color según margen
-                                badgeMargen.removeClass('bg-success bg-warning bg-danger');
-                                if (nuevoMargen > 30) badgeMargen.addClass('bg-success');
-                                else if (nuevoMargen > 15) badgeMargen.addClass('bg-warning');
-                                else badgeMargen.addClass('bg-danger');
+                                // Ganancia (idx 6) y Margen (idx 7)
+                                const costo       = parseFloat($('#editPreciod').val() || 0);
+                                const precioVenta = parseFloat($('#editCostod3').val() || 0);
+                                const ganancia    = precioVenta - costo;
+                                const margen      = costo > 0 ? ((precioVenta - costo) / costo) * 100 : 0;
+
+                                // Actualizar ganancia
+                                const $tdGanancia = fila.find('td').eq(6);
+                                $tdGanancia
+                                    .removeClass('text-danger text-success')
+                                    .addClass(ganancia < 0 ? 'text-danger' : 'text-success')
+                                    .text('$' + ganancia.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+
+                                // Actualizar margen
+                                let badgeClass = 'bg-secondary';
+                                if (margen > 0) badgeClass = 'bg-success';
+                                else if (margen < 0) badgeClass = 'bg-danger';
+                                fila.find('td').eq(7).html('<span class="badge ' + badgeClass + '">' + margen.toFixed(1) + '%</span>');
                             }
 
                             // Cerrar modal
@@ -1205,17 +1313,13 @@
                 });
             });
 
-            // ============================================
             // LIMPIAR MODAL AL CERRAR
-            // ============================================
             $('#productoEditModal').on('hidden.bs.modal', function() {
                 $('#productoEditForm')[0].reset();
                 $('#editProductoId').val('');
                 $('#editProductoCodigo').text('');
                 $('#modalProductoNombre').text('');
                 $('#editInstancia').val('');
-                $('#editExistencia').val('');
-                $('#editMargen').val('');
             });
         });
     </script>

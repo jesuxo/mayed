@@ -391,15 +391,20 @@ class SaprovController extends Controller
 
         foreach ($productos as $productoModel) {
             $producto = new \stdClass();
-            $producto->codprod = $productoModel->codprod;
-            $producto->descrip = $productoModel->descrip;
-            $producto->marca = $productoModel->marca;
-            $producto->preciod = $productoModel->preciod;
-            $producto->costod = $productoModel->costod;
-            $producto->costod2 = $productoModel->costod2;
-            $producto->costod3 = $productoModel->costod3;
-            $producto->existen = $productoModel->existen;
-            $producto->codinst = $productoModel->codinst;
+            $producto->codprod  = $productoModel->codprod;
+            $producto->descrip  = $productoModel->descrip;
+            $producto->marca    = $productoModel->marca;
+            $producto->preciod  = $productoModel->preciod;
+            $producto->costod   = $productoModel->costod;
+            $producto->costod2  = $productoModel->costod2;
+            $producto->costod3  = $productoModel->costod3;
+            $producto->existen  = $productoModel->existen;
+            $producto->codinst  = $productoModel->codinst;
+
+            $costo              = (float) $producto->preciod;
+            $precioVenta        = (float) $producto->costod3;
+            $producto->ganancia = $precioVenta - $costo;
+            $producto->margen   = $costo > 0 ? (($precioVenta - $costo) / $costo) * 100 : 0;
 
             // ========== TOTAL COMPRAS ==========
             $producto->total_compras = Saitemcom::where('coditem', $producto->codprod)
