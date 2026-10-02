@@ -824,6 +824,123 @@ class SaprovController extends Controller
         ];
     }
 
+
+    /**
+     * Obtener ventas diarias de un producto en un rango de fechas
+     */
+    public function ventasDiariasProducto(Request $request)
+    {
+        $request->validate([
+            'codprod'    => 'required|string',
+            'codprov'    => 'required|string',
+            'fecha_desde'=> 'required|date',
+            'fecha_hasta'=> 'required|date',
+        ]);
+
+        $codprod     = $request->codprod;
+        $codprov     = $request->codprov;
+        $fecha_desde = $request->fecha_desde;
+        $fecha_hasta = $request->fecha_hasta;
+
+        $comercial = session('comercialid') ?: 1;
+
+        $sucursales = Sasucursal::where('fk_comercial', $comercial)->pluck('id')->toArray();
+        $sucursalIds = implode(',', $sucursales);
+
+        // Verificar si el producto usa serial
+        $infoSerial = $this->getProductoSerialInfo($codprod, $comercial);
+
+        $ventasPorDia = [];
+
+        if ($infoSerial['usa_serial']) {
+            // Productos con serial: solo las ventas de los seriales comprados a este proveedor
+            $serialesCompra = $this->getSerialesCompraPorProducto($codprov, $codprod, $sucursalIds);
+
+            if ($serialesCompra->isNotEmpty()) {
+                $ventasPorDia = DB::table('saitemfac as ifac')
+                    ->join('saseprfac as sf', function ($join) {
+                        $join->on('ifac.TipoFac', '=', 'sf.TipoFac')
+                            ->on('ifac.NumeroD', '=', 'sf.NumeroD')
+                            ->on('ifac.NroLinea', '=', 'sf.NroLinea')
+                            ->on('ifac.CodItem', '=', 'sf.CodItem');
+                    })
+                    ->whereIn('sf.NroSerial', $serialesCompra)
+                    ->where('ifac.CodItem', $codprod)
+                    ->whereIn('ifac.TipoFac', ['A', 'B'])
+                    ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
+                    ->whereBetween('ifac.FechaE', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+                    ->select(
+                        DB::raw("DATE(ifac.FechaE) as fecha"),
+                        DB::raw("SUM(ifac.cantidad * ifac.signo) as unidades")
+                    )
+                    ->groupBy(DB::raw("DATE(ifac.FechaE)"))
+                    ->orderBy('fecha')
+                    ->get()
+                    ->keyBy('fecha');
+            }
+        } else {
+            // Productos sin serial: todas las ventas del producto
+            $ventasPorDia = Saitemfac::where('CodItem', $codprod)
+                ->whereRaw("fk_sucursal in ($sucursalIds)")
+                ->whereIn('TipoFac', ['A', 'B'])
+                ->whereBetween('FechaE', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+                ->select(
+                    DB::raw("DATE(FechaE) as fecha"),
+                    DB::raw("SUM(cantidad * signo) as unidades")
+                )
+                ->groupBy(DB::raw("DATE(FechaE)"))
+                ->orderBy('fecha')
+                ->get()
+                ->keyBy('fecha');
+        }
+
+        // Rellenar todos los días del rango (incluso los que no tuvieron ventas)
+        $dias = [];
+        $inicio = Carbon::parse($fecha_desde);
+        $fin    = Carbon::parse($fecha_hasta);
+        $total  = 0;
+
+        for ($d = $inicio->copy(); $d->lte($fin); $d->addDay()) {
+            $key     = $d->format('Y-m-d');
+            $unidades = 0;
+
+            if (isset($ventasPorDia[$key])) {
+                $unidades = (float) $ventasPorDia[$key]->unidades;
+            }
+
+            $dias[] = [
+                'fecha'      => $key,
+                'fecha_fmt'  => $d->format('d/m/Y'),
+                'dia_semana' => $d->locale('es')->isoFormat('ddd'),
+                'unidades'   => $unidades,
+            ];
+
+            $total += $unidades;
+        }
+
+        // Datos del producto
+        $producto = Saprod::where('codprod', $codprod)
+            ->where('comercial', $comercial)
+            ->select('codprod', 'descrip', 'marca')
+            ->first();
+
+        // Mejor día
+        $mejorDia = collect($dias)->sortByDesc('unidades')->first();
+
+        return response()->json([
+            'success'  => true,
+            'producto' => $producto,
+            'dias'     => $dias,
+            'resumen'  => [
+                'total_unidades' => $total,
+                'promedio_diario'=> count($dias) > 0 ? round($total / count($dias), 1) : 0,
+                'mejor_dia'      => $mejorDia && $mejorDia['unidades'] > 0 ? $mejorDia : null,
+                'dias_con_venta' => collect($dias)->where('unidades', '>', 0)->count(),
+                'dias_totales'   => count($dias),
+            ],
+        ]);
+    }
+
     /**
      * Obtener top productos más vendidos
      */

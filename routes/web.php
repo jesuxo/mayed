@@ -332,21 +332,22 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/cxcdescuento',  'aplicarDescuento')->name('cxcdescuento');
     });
 
+    Route::post('proveedores/ventas-diarias-producto', [SaprovController::class, 'ventasDiariasProducto'])
+        ->name('proveedores.ventas-diarias-producto');
+    Route::get('proveedores/cuentas-por-pagar/resumen-general', [SaprovController::class, 'getResumenGeneralCuentasPorPagar'])
+        ->name('proveedores.cuentas-por-pagar.resumen-general');
+    Route::post('/proveedores/producto/quick-update', [SaprovController::class, 'quickUpdateProducto'])
+        ->name('proveedores.producto.quick-update');
+    Route::get ('/proveedores/debug/{codprov}/{codprod}', [SaprovController::class, 'debug'])->name('proveedores.debug');
 
     Route::get('/productos/{codprod}/datos-edit', [SaprodController::class, 'getDatosEdit'])
         ->name('productos.datos-edit');
-
-    Route::get ('/proveedores/debug/{codprov}/{codprod}', [SaprovController::class, 'debug'])->name('proveedores.debug');
     Route::post('/proveedores/buscarPredictivo', [SaprovController::class, 'buscarPredictivo'])->name('proveedores.buscarPredictivo');
     Route::get ('/proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])->name('proveedores.productos-panel');
     Route::post('/proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])->name('proveedores.productos-panel.post');
-    Route::post('/proveedores/producto/quick-update', [SaprovController::class, 'quickUpdateProducto'])
-        ->name('proveedores.producto.quick-update');
     Route::get('proveedores/{codprov}/cuentas-por-pagar', [SaprovController::class, 'getCuentasPorPagar'])
         ->name('proveedores.cuentas-por-pagar');
 
-    Route::get('proveedores/cuentas-por-pagar/resumen-general', [SaprovController::class, 'getResumenGeneralCuentasPorPagar'])
-        ->name('proveedores.cuentas-por-pagar.resumen-general');
 
     Route::controller(SaprovController::class)->group(function () {
         Route::get ('saprov/json', 'json');

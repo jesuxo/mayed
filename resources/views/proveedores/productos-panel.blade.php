@@ -487,7 +487,17 @@
                                     <!-- Unidades Vendidas -->
                                     <td class="text-end">
                                         @if(($producto->unidades_vendidas ?? 0) > 0)
-                                            <span class="badge bg-primary">{{ number_format($producto->unidades_vendidas, 0) }}</span>
+                                            <button type="button"
+                                                    class="badge bg-primary border-0 ver-ventas-diarias"
+                                                    style="cursor: pointer;"
+                                                    data-codprod="{{ $producto->codprod }}"
+                                                    data-descrip="{{ $producto->descrip }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#ventasDiariasModal"
+                                                    title="Ver detalle diario de ventas">
+                                                <i class="ri-line-chart-line"></i>
+                                                {{ number_format($producto->unidades_vendidas, 0) }}
+                                            </button>
                                         @else
                                             <span class="badge bg-secondary">0</span>
                                         @endif
@@ -678,7 +688,70 @@
 
         </div>
     </div>
+    <!-- Modal de ventas diarias por producto -->
+    <div class="modal fade" id="ventasDiariasModal" tabindex="-1" aria-labelledby="ventasDiariasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div>
+                        <h5 class="modal-title text-white mb-0" id="ventasDiariasModalLabel">
+                            <i class="ri-line-chart-line"></i> Detalle Diario de Ventas
+                        </h5>
+                        <small class="text-white-50" id="ventasDiariasSubtitulo"></small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- KPIs -->
+                    <div class="row g-2 mb-3" id="ventasDiariasKpis">
+                        <div class="col-4">
+                            <div class="p-2 rounded text-center" style="background:#eef2ff;">
+                                <small class="text-muted d-block">Total Vendido</small>
+                                <strong class="fs-5 text-primary" id="kpiTotal">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded text-center" style="background:#e8f8f0;">
+                                <small class="text-muted d-block">Promedio Diario</small>
+                                <strong class="fs-5 text-success" id="kpiPromedio">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded text-center" style="background:#fff8e1;">
+                                <small class="text-muted d-block">Mejor Día</small>
+                                <strong class="fs-5 text-warning" id="kpiMejor">-</strong>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Gráfico -->
+                    <div style="position: relative; height: 260px;">
+                        <canvas id="ventasDiariasChart"></canvas>
+                    </div>
+
+                    <!-- Tabla -->
+                    <div class="table-responsive mt-3" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th style="width: 30%;">Fecha</th>
+                                <th style="width: 15%;" class="text-center">Día</th>
+                                <th style="width: 15%;" class="text-end">Unidades</th>
+                                <th style="width: 40%;">Participación</th>
+                            </tr>
+                            </thead>
+                            <tbody id="ventasDiariasTableBody">
+                            <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     @include('proveedores.partials.producto_edit_modal')
 @endsection
 
@@ -690,6 +763,171 @@
 
     <script>
         $(document).ready(function() {
+            // ============================================================
+// VENTAS DIARIAS POR PRODUCTO
+// ============================================================
+            let ventasDiariasChartInstance = null;
+
+            $(document).on('click', '.ver-ventas-diarias', function () {
+                const codprod = $(this).data('codprod');
+                const descrip = $(this).data('descrip');
+                const codprov = '{{ $proveedor->codprov }}';
+                const fecha_desde = '{{ $fecha_desde }}';
+                const fecha_hasta = '{{ $fecha_hasta }}';
+
+                // Reset UI
+                $('#ventasDiariasSubtitulo').text(descrip + ' — ' +
+                    new Date(fecha_desde).toLocaleDateString('es-VE') + ' al ' +
+                    new Date(fecha_hasta).toLocaleDateString('es-VE'));
+                $('#kpiTotal').text('...');
+                $('#kpiPromedio').text('...');
+                $('#kpiMejor').text('...');
+                $('#ventasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>');
+
+                // Destruir gráfico previo si existe
+                if (ventasDiariasChartInstance) {
+                    ventasDiariasChartInstance.destroy();
+                    ventasDiariasChartInstance = null;
+                }
+
+                $.ajax({
+                    url: '{{ route("proveedores.ventas-diarias-producto") }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        codprod: codprod,
+                        codprov: codprov,
+                        fecha_desde: fecha_desde,
+                        fecha_hasta: fecha_hasta
+                    },
+                    success: function (response) {
+                        if (!response.success) {
+                            $('#ventasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                            return;
+                        }
+
+                        const dias = response.dias || [];
+                        const resumen = response.resumen || {};
+
+                        // KPIs
+                        $('#kpiTotal').text(Number(resumen.total_unidades || 0).toLocaleString('es-VE'));
+                        $('#kpiPromedio').text(Number(resumen.promedio_diario || 0).toLocaleString('es-VE'));
+                        if (resumen.mejor_dia) {
+                            $('#kpiMejor').text(resumen.mejor_dia.unidades + ' (' + resumen.mejor_dia.fecha_fmt + ')');
+                        } else {
+                            $('#kpiMejor').text('-');
+                        }
+
+                        // Gráfico
+                        const labels = dias.map(d => d.fecha_fmt);
+                        const valores = dias.map(d => d.unidades);
+
+                        const ctx = document.getElementById('ventasDiariasChart').getContext('2d');
+
+                        // Gradiente para el área
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+                        gradient.addColorStop(0, 'rgba(102, 126, 234, 0.6)');
+                        gradient.addColorStop(1, 'rgba(102, 126, 234, 0.05)');
+
+                        ventasDiariasChartInstance = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Unidades Vendidas',
+                                    data: valores,
+                                    borderColor: '#667eea',
+                                    backgroundColor: gradient,
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.35,
+                                    pointBackgroundColor: '#667eea',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2,
+                                    pointRadius: 4,
+                                    pointHoverRadius: 7
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                legend: { display: false },
+                                tooltips: {
+                                    backgroundColor: 'rgba(0,0,0,0.8)',
+                                    titleFontSize: 13,
+                                    bodyFontSize: 13,
+                                    callbacks: {
+                                        label: function (item, data) {
+                                            return ' ' + item.yLabel + ' unidades';
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    yAxes: [{
+                                        beginAtZero: true,
+                                        ticks: {
+                                            precision: 0,
+                                            fontColor: '#666'
+                                        },
+                                        gridLines: { color: 'rgba(0,0,0,0.05)' }
+                                    }],
+                                    xAxes: [{
+                                        ticks: {
+                                            fontColor: '#666',
+                                            autoSkip: true,
+                                            maxTicksLimit: 12
+                                        },
+                                        gridLines: { display: false }
+                                    }]
+                                }
+                            }
+                        });
+
+                        // Tabla
+                        const maxUnidades = Math.max(...valores, 1);
+                        let html = '';
+                        let totalParaPorcentaje = resumen.total_unidades || 0;
+
+                        dias.forEach(function (d) {
+                            const pct = totalParaPorcentaje > 0 ? (d.unidades / totalParaPorcentaje) * 100 : 0;
+                            const barraPct = (d.unidades / maxUnidades) * 100;
+
+                            let colorBarra = 'bg-secondary';
+                            if (d.unidades > 0) {
+                                if (barraPct >= 70) colorBarra = 'bg-success';
+                                else if (barraPct >= 30) colorBarra = 'bg-primary';
+                                else colorBarra = 'bg-info';
+                            }
+
+                            html += `
+                    <tr>
+                        <td><strong>${d.fecha_fmt}</strong></td>
+                        <td class="text-center text-muted text-capitalize">${d.dia_semana}</td>
+                        <td class="text-end">
+                            <span class="badge ${d.unidades > 0 ? 'bg-primary' : 'bg-light text-muted'}">
+                                ${Number(d.unidades).toLocaleString('es-VE')}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar ${colorBarra}" style="width: ${barraPct}%"></div>
+                                </div>
+                                <small class="text-muted" style="min-width: 40px; text-align: right;">${pct.toFixed(1)}%</small>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                        });
+
+                        $('#ventasDiariasTableBody').html(html);
+                    },
+                    error: function (xhr) {
+                        console.error('Error:', xhr);
+                        $('#ventasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                    }
+                });
+            });
             // Verificar si Chart está definido
             if (typeof Chart === 'undefined') {
                 console.error('Chart.js no se cargó correctamente');
