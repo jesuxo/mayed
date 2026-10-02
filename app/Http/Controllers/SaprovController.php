@@ -411,7 +411,7 @@ class SaprovController extends Controller
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
                 ->where('codprov', $codprov)
                 ->whereIn('tipocom', ['H', 'I'])
-                ->whereBetween('fechae', [$fecha_desde, $fecha_hasta])
+                ->whereBetween('fechae', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                 ->select(DB::raw('SUM(preciod * cantidad * signo) as total'))
                 ->value('total') ?? 0;
 
@@ -454,14 +454,14 @@ class SaprovController extends Controller
                 $producto->unidades_vendidas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
+                    ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM( cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
                 $producto->total_ventas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
+                    ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
@@ -530,7 +530,7 @@ class SaprovController extends Controller
                 : 0;
 
             // ========== DÍAS DE STOCK ==========
-            $dias_periodo = Carbon::parse($fecha_desde)->diffInDays(Carbon::parse($fecha_hasta)) + 1;
+            $dias_periodo = Carbon::parse($fecha_desde.' 00:00:00.00')->diffInDays(Carbon::parse($fecha_hasta.' 23:59:58.00')) + 1;
             $venta_diaria_promedio = $dias_periodo > 0 ? $producto->unidades_vendidas / $dias_periodo : 0;
             $producto->dias_stock = $venta_diaria_promedio > 0
                 ? $producto->existencia_actual / $venta_diaria_promedio
@@ -644,7 +644,7 @@ class SaprovController extends Controller
             ->whereIn('sf.NroSerial', $seriales)
             ->where('ifac.CodItem', $codprod)
             ->whereIn('ifac.TipoFac', ['A', 'B'])
-            ->whereBetween('ifac.FechaE', [$fecha_desde, $fecha_hasta])
+            ->whereBetween('ifac.FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
             ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
             ->select(
                 'ifac.id',
@@ -702,7 +702,7 @@ class SaprovController extends Controller
         $total_compras = Saitemcom::where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
             ->whereIn('tipocom', ['H', 'I'])
-            ->whereBetween('fechae', [$fecha_desde, $fecha_hasta])
+            ->whereBetween('fechae', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
             ->select(DB::raw('SUM(preciod * cantidad * signo) as total'))
             ->value('total') ?? 0;
 
@@ -727,7 +727,7 @@ class SaprovController extends Controller
                         ->whereIn('sf.NroSerial', $serialesCompra[$codprod])
                         ->where('ifac.CodItem', $codprod)
                         ->whereIn('ifac.TipoFac', ['A'])
-                        ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde' and '$fecha_hasta'")
+                        ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde 00:00:00.00' and '$fecha_hasta 23:59:58.00'")
                         ->select(DB::raw('SUM(ifac.costodoriginal * ifac.cantidad * ifac.signo) as total'))
                         ->get();
                     $total_ventas += $ventasProducto[0]->total;
@@ -737,7 +737,7 @@ class SaprovController extends Controller
                 $ventasProducto = Saitemfac::where('CodItem', $codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
+                    ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
@@ -757,7 +757,7 @@ class SaprovController extends Controller
             ->sum('existen');
 
         // Rotación de inventario
-        $dias_periodo = Carbon::parse($fecha_desde)->diffInDays(Carbon::parse($fecha_hasta)) + 1;
+        $dias_periodo = Carbon::parse($fecha_desde.' 00:00:00.00')->diffInDays(Carbon::parse($fecha_hasta.' 23:59:58.00')) + 1;
         $venta_diaria_promedio = $dias_periodo > 0 ? $total_ventas / $dias_periodo : 0;
         $rotacion = $venta_diaria_promedio > 0 && $existencia_total > 0
             ? $existencia_total / $venta_diaria_promedio
@@ -794,7 +794,7 @@ class SaprovController extends Controller
                         ->whereIn('sf.NroSerial', $serialesCompra[$codprod])
                         ->where('ifac.CodItem', $codprod)
                         ->whereIn('ifac.TipoFac', ['A'])
-                        ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde' and '$fecha_hasta'")
+                        ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde 00:00:00.00' and '$fecha_hasta 23:59:58.00'")
                         ->select(DB::raw('SUM(ifac.costodoriginal * ifac.cantidad * ifac.signo) as total'))
                         ->get();
 
@@ -906,14 +906,14 @@ class SaprovController extends Controller
                 $producto->unidades_vendidas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
+                    ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(  cantidad * signo) as cantidad') )
                     ->value('cantidad') ?? 0;
 
                 $producto->monto_ventas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
+                    ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(costodoriginal * signo) as total'))
                     ->value('total') ?? 0;
             }
@@ -921,7 +921,7 @@ class SaprovController extends Controller
             $producto->rotacion = $producto->existen > 0 ? $producto->unidades_vendidas / $producto->existen : 0;
 
             // Calcular días de stock
-            $dias_periodo = Carbon::parse($fecha_desde)->diffInDays(Carbon::parse($fecha_hasta)) + 1;
+            $dias_periodo = Carbon::parse($fecha_desde.' 00:00:00.00')->diffInDays(Carbon::parse($fecha_hasta.' 23:59:58.00')) + 1;
             $venta_diaria = $dias_periodo > 0 ? $producto->unidades_vendidas / $dias_periodo : 0;
             $producto->dias_stock = $venta_diaria > 0 ? $producto->existen / $venta_diaria : 0;
 
