@@ -454,7 +454,6 @@ class SaprovController extends Controller
                 $producto->unidades_vendidas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->where('signo', '>', 0)
                     ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
                     ->select(DB::raw('SUM( cantidad * signo) as total'))
                     ->value('total') ?? 0;
@@ -469,8 +468,7 @@ class SaprovController extends Controller
                 // Calcular última venta para días sin venta
                 $ultima_venta = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A', 'B'])
-                    ->where('signo', '>', 0)
+                    ->whereIn('TipoFac', ['A'])
                     ->orderBy('FechaE', 'desc')
                     ->first();
 
@@ -908,7 +906,6 @@ class SaprovController extends Controller
                 $producto->unidades_vendidas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->where('signo', '>', 0)
                     ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
                     ->select(DB::raw('SUM(  cantidad * signo) as cantidad') )
                     ->value('cantidad') ?? 0;
@@ -916,7 +913,6 @@ class SaprovController extends Controller
                 $producto->monto_ventas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['A', 'B'])
-                    ->where('signo', '>', 0)
                     ->whereBetween('FechaE', [$fecha_desde, $fecha_hasta])
                     ->select(DB::raw('SUM(costodoriginal * signo) as total'))
                     ->value('total') ?? 0;

@@ -454,6 +454,7 @@
                                 <th class="sortable" data-sort="descrip">Producto  <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable" data-sort="marca">Marca     <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="stock">Stock Total <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable text-end" data-sort="unidades_vendidas">Unidades Vendidas <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_sin_venta">Días sin Venta <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_stock">Días Stock <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="ganancia">Ganancia <i class="ri-arrow-up-down-line"></i></th>
@@ -481,6 +482,15 @@
                                     <!-- Stock Total -->
                                     <td class="text-end {{ $producto->existencia_actual < 10 ? 'stock-bajo' : 'stock-normal' }}">
                                         {{ number_format($producto->existencia_actual+0 ?? 0, 0) }}
+                                    </td>
+
+                                    <!-- Unidades Vendidas -->
+                                    <td class="text-end">
+                                        @if(($producto->unidades_vendidas ?? 0) > 0)
+                                            <span class="badge bg-primary">{{ number_format($producto->unidades_vendidas, 0) }}</span>
+                                        @else
+                                            <span class="badge bg-secondary">0</span>
+                                        @endif
                                     </td>
 
                                     <!-- Días sin Venta -->
@@ -590,7 +600,7 @@
                                 </tr>
                             @empty
                                 <tr id="filaSinProductos">
-                                    <td colspan="10" class="text-center py-4">
+                                    <td colspan="11" class="text-center py-4">
                                         <i class="ri-inbox-line fs-1 text-muted"></i>
                                         <p class="text-muted mt-2">No hay productos para mostrar</p>
                                     </td>
@@ -728,7 +738,7 @@
                 $('#sinResultados').remove();
                 if (visibles === 0 && tokens.length > 0) {
                     $('#productosTableBody').append(
-                        '<tr id="sinResultados"><td colspan="10" class="text-center py-4">' +
+                        '<tr id="sinResultados"><td colspan="11" class="text-center py-4">' +
                         '<i class="ri-search-eye-line fs-1 text-muted"></i>' +
                         '<p class="text-muted mt-2">No se encontraron productos para: <strong>' +
                         termino + '</strong></p></td></tr>'
@@ -1049,6 +1059,10 @@
                             aVal = $(a).find('td').eq(idx).text().trim().toLowerCase();
                             bVal = $(b).find('td').eq(idx).text().trim().toLowerCase();
                             break;
+                        case 'unidades_vendidas':
+                            aVal = parseFloat($(a).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
+                            bVal = parseFloat($(b).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
+                            break;
                         case 'stock':
                             aVal = parseFloat($(a).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
                             bVal = parseFloat($(b).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
@@ -1268,7 +1282,7 @@
                                 const margen      = costo > 0 ? ((precioVenta - costo) / costo) * 100 : 0;
 
                                 // Actualizar ganancia
-                                const $tdGanancia = fila.find('td').eq(6);
+                                const $tdGanancia = fila.find('td').eq(7);
                                 $tdGanancia
                                     .removeClass('text-danger text-success')
                                     .addClass(ganancia < 0 ? 'text-danger' : 'text-success')
@@ -1278,7 +1292,7 @@
                                 let badgeClass = 'bg-secondary';
                                 if (margen > 0) badgeClass = 'bg-success';
                                 else if (margen < 0) badgeClass = 'bg-danger';
-                                fila.find('td').eq(7).html('<span class="badge ' + badgeClass + '">' + margen.toFixed(1) + '%</span>');
+                                fila.find('td').eq(8).html('<span class="badge ' + badgeClass + '">' + margen.toFixed(1) + '%</span>');
                             }
 
                             // Cerrar modal
