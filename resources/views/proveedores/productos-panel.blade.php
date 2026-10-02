@@ -724,26 +724,80 @@
                         </div>
                     </div>
 
-                    <!-- Gráfico -->
-                    <div style="position: relative; height: 260px;">
-                        <canvas id="ventasDiariasChart"></canvas>
-                    </div>
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs mb-3" id="ventasDiariasTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tab-por-dia" data-bs-toggle="tab"
+                                    data-bs-target="#pane-por-dia" type="button" role="tab">
+                                <i class="ri-calendar-line"></i> Por Día
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-por-sucursal" data-bs-toggle="tab"
+                                    data-bs-target="#pane-por-sucursal" type="button" role="tab">
+                                <i class="ri-store-2-line"></i> Por Sucursal
+                            </button>
+                        </li>
+                    </ul>
 
-                    <!-- Tabla -->
-                    <div class="table-responsive mt-3" style="max-height: 250px; overflow-y: auto;">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
-                            <tr>
-                                <th style="width: 30%;">Fecha</th>
-                                <th style="width: 15%;" class="text-center">Día</th>
-                                <th style="width: 15%;" class="text-end">Unidades</th>
-                                <th style="width: 40%;">Participación</th>
-                            </tr>
-                            </thead>
-                            <tbody id="ventasDiariasTableBody">
-                            <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
-                            </tbody>
-                        </table>
+                    <div class="tab-content">
+                        <!-- === TAB POR DÍA === -->
+                        <div class="tab-pane fade show active" id="pane-por-dia" role="tabpanel">
+                            <div style="position: relative; height: 240px;">
+                                <canvas id="ventasDiariasChart"></canvas>
+                            </div>
+
+                            <div class="table-responsive mt-3" style="max-height: 220px; overflow-y: auto;">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                                    <tr>
+                                        <th style="width: 30%;">Fecha</th>
+                                        <th style="width: 15%;" class="text-center">Día</th>
+                                        <th style="width: 15%;" class="text-end">Unidades</th>
+                                        <th style="width: 40%;">Participación</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="ventasDiariasTableBody">
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- === TAB POR SUCURSAL === -->
+                        <div class="tab-pane fade" id="pane-por-sucursal" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <div style="position: relative; height: 240px;">
+                                        <canvas id="ventasSucursalChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-7">
+                                    <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover mb-0">
+                                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Sucursal</th>
+                                                <th class="text-end">Unidades</th>
+                                                <th class="text-end">%</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="ventasSucursalTableBody">
+                                            <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mejor sucursal destacada -->
+                            <div id="mejorSucursalBox" class="alert alert-success mt-3 mb-0 d-none">
+                                <i class="ri-trophy-line"></i>
+                                <strong>Top sucursal:</strong>
+                                <span id="mejorSucursalTexto"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -764,9 +818,10 @@
     <script>
         $(document).ready(function() {
             // ============================================================
-// VENTAS DIARIAS POR PRODUCTO
-// ============================================================
+            // VENTAS DIARIAS POR PRODUCTO (+ POR SUCURSAL)
+            // ============================================================
             let ventasDiariasChartInstance = null;
+            let ventasSucursalChartInstance = null;
 
             $(document).on('click', '.ver-ventas-diarias', function () {
                 const codprod = $(this).data('codprod');
@@ -779,16 +834,20 @@
                 $('#ventasDiariasSubtitulo').text(descrip + ' — ' +
                     new Date(fecha_desde).toLocaleDateString('es-VE') + ' al ' +
                     new Date(fecha_hasta).toLocaleDateString('es-VE'));
-                $('#kpiTotal').text('...');
-                $('#kpiPromedio').text('...');
-                $('#kpiMejor').text('...');
+                $('#kpiTotal, #kpiPromedio, #kpiMejor').text('...');
                 $('#ventasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>');
+                $('#ventasSucursalTableBody').html('<tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>');
+                $('#mejorSucursalBox').addClass('d-none');
 
-                // Destruir gráfico previo si existe
-                if (ventasDiariasChartInstance) {
-                    ventasDiariasChartInstance.destroy();
-                    ventasDiariasChartInstance = null;
+                // Volver al tab "Por Día"
+                if (typeof bootstrap !== 'undefined') {
+                    const primerTab = document.querySelector('#tab-por-dia');
+                    if (primerTab) new bootstrap.Tab(primerTab).show();
                 }
+
+                // Destruir gráficos previos
+                if (ventasDiariasChartInstance) { ventasDiariasChartInstance.destroy(); ventasDiariasChartInstance = null; }
+                if (ventasSucursalChartInstance) { ventasSucursalChartInstance.destroy(); ventasSucursalChartInstance = null; }
 
                 $.ajax({
                     url: '{{ route("proveedores.ventas-diarias-producto") }}',
@@ -807,9 +866,10 @@
                         }
 
                         const dias = response.dias || [];
+                        const sucursales = response.sucursales || [];
                         const resumen = response.resumen || {};
 
-                        // KPIs
+                        // ---------- KPIs ----------
                         $('#kpiTotal').text(Number(resumen.total_unidades || 0).toLocaleString('es-VE'));
                         $('#kpiPromedio').text(Number(resumen.promedio_diario || 0).toLocaleString('es-VE'));
                         if (resumen.mejor_dia) {
@@ -818,14 +878,14 @@
                             $('#kpiMejor').text('-');
                         }
 
-                        // Gráfico
+                        // ============================================================
+                        // GRÁFICO POR DÍA
+                        // ============================================================
                         const labels = dias.map(d => d.fecha_fmt);
                         const valores = dias.map(d => d.unidades);
 
                         const ctx = document.getElementById('ventasDiariasChart').getContext('2d');
-
-                        // Gradiente para el área
-                        const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
                         gradient.addColorStop(0, 'rgba(102, 126, 234, 0.6)');
                         gradient.addColorStop(1, 'rgba(102, 126, 234, 0.05)');
 
@@ -854,10 +914,8 @@
                                 legend: { display: false },
                                 tooltips: {
                                     backgroundColor: 'rgba(0,0,0,0.8)',
-                                    titleFontSize: 13,
-                                    bodyFontSize: 13,
                                     callbacks: {
-                                        label: function (item, data) {
+                                        label: function (item) {
                                             return ' ' + item.yLabel + ' unidades';
                                         }
                                     }
@@ -865,28 +923,21 @@
                                 scales: {
                                     yAxes: [{
                                         beginAtZero: true,
-                                        ticks: {
-                                            precision: 0,
-                                            fontColor: '#666'
-                                        },
+                                        ticks: { precision: 0, fontColor: '#666' },
                                         gridLines: { color: 'rgba(0,0,0,0.05)' }
                                     }],
                                     xAxes: [{
-                                        ticks: {
-                                            fontColor: '#666',
-                                            autoSkip: true,
-                                            maxTicksLimit: 12
-                                        },
+                                        ticks: { fontColor: '#666', autoSkip: true, maxTicksLimit: 12 },
                                         gridLines: { display: false }
                                     }]
                                 }
                             }
                         });
 
-                        // Tabla
+                        // Tabla por día
                         const maxUnidades = Math.max(...valores, 1);
-                        let html = '';
-                        let totalParaPorcentaje = resumen.total_unidades || 0;
+                        const totalParaPorcentaje = resumen.total_unidades || 0;
+                        let htmlDias = '';
 
                         dias.forEach(function (d) {
                             const pct = totalParaPorcentaje > 0 ? (d.unidades / totalParaPorcentaje) * 100 : 0;
@@ -899,7 +950,7 @@
                                 else colorBarra = 'bg-info';
                             }
 
-                            html += `
+                            htmlDias += `
                     <tr>
                         <td><strong>${d.fecha_fmt}</strong></td>
                         <td class="text-center text-muted text-capitalize">${d.dia_semana}</td>
@@ -920,14 +971,117 @@
                 `;
                         });
 
-                        $('#ventasDiariasTableBody').html(html);
+                        $('#ventasDiariasTableBody').html(htmlDias);
+
+                        // ============================================================
+                        // GRÁFICO POR SUCURSAL (DONA)
+                        // ============================================================
+                        const colores = [
+                            '#667eea', '#28a745', '#ffc107', '#17a2b8', '#dc3545',
+                            '#6f42c1', '#fd7e14', '#20c997', '#e83e8c', '#6c757d'
+                        ];
+
+                        if (sucursales.length > 0) {
+                            const labelsSuc = sucursales.map(s => s.nombre);
+                            const dataSuc   = sucursales.map(s => s.unidades);
+                            const colorsSuc = sucursales.map((s, i) => colores[i % colores.length]);
+
+                            const ctxSuc = document.getElementById('ventasSucursalChart').getContext('2d');
+                            ventasSucursalChartInstance = new Chart(ctxSuc, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: labelsSuc,
+                                    datasets: [{
+                                        data: dataSuc,
+                                        backgroundColor: colorsSuc,
+                                        borderWidth: 2,
+                                        borderColor: '#fff'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    cutoutPercentage: 55,
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            boxWidth: 12,
+                                            padding: 10,
+                                            fontSize: 11
+                                        }
+                                    },
+                                    tooltips: {
+                                        backgroundColor: 'rgba(0,0,0,0.8)',
+                                        callbacks: {
+                                            label: function (item, data) {
+                                                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                                const val = item.xLabel || item.yLabel;
+                                                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                                return ' ' + item.label + ': ' + val + ' und (' + pct + '%)';
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            // Tabla por sucursal
+                            const totalSuc = dataSuc.reduce((a, b) => a + b, 0);
+                            let htmlSuc = '';
+                            sucursales.forEach(function (s, i) {
+                                const pct = totalSuc > 0 ? (s.unidades / totalSuc) * 100 : 0;
+                                const barraPct = totalSuc > 0 ? (s.unidades / Math.max(...dataSuc)) * 100 : 0;
+                                const colorBarra = colores[i % colores.length];
+
+                                htmlSuc += `
+                        <tr>
+                            <td>
+                                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+                                             background:${colorBarra};margin-right:6px;"></span>
+                                ${i + 1}
+                            </td>
+                            <td><strong>${s.nombre}</strong></td>
+                            <td class="text-end">${Number(s.unidades).toLocaleString('es-VE')}</td>
+                            <td class="text-end">
+                                <div class="d-flex align-items-center justify-content-end gap-2">
+                                    <div class="progress" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar" style="width: ${barraPct}%; background:${colorBarra};"></div>
+                                    </div>
+                                    <small class="text-muted">${pct.toFixed(1)}%</small>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                            });
+                            $('#ventasSucursalTableBody').html(htmlSuc);
+
+                            // Mejor sucursal
+                            if (resumen.mejor_sucursal) {
+                                const ms = resumen.mejor_sucursal;
+                                const pctMs = totalSuc > 0 ? ((ms.unidades / totalSuc) * 100).toFixed(1) : 0;
+                                $('#mejorSucursalTexto').text(
+                                    ms.nombre + ' con ' + Number(ms.unidades).toLocaleString('es-VE') +
+                                    ' unidades (' + pctMs + '% del total)'
+                                );
+                                $('#mejorSucursalBox').removeClass('d-none');
+                            }
+                        } else {
+                            // Sin ventas por sucursal
+                            const ctxSuc = document.getElementById('ventasSucursalChart').getContext('2d');
+                            ctxSuc.clearRect(0, 0, ctxSuc.canvas.width, ctxSuc.canvas.height);
+                            $('#ventasSucursalTableBody').html(
+                                '<tr><td colspan="4" class="text-center text-muted py-3">' +
+                                '<i class="ri-inbox-line fs-3 d-block"></i>Sin ventas por sucursal en el período</td></tr>'
+                            );
+                        }
                     },
                     error: function (xhr) {
                         console.error('Error:', xhr);
                         $('#ventasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                        $('#ventasSucursalTableBody').html('<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
                     }
                 });
             });
+
             // Verificar si Chart está definido
             if (typeof Chart === 'undefined') {
                 console.error('Chart.js no se cargó correctamente');
