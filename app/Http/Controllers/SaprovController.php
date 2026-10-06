@@ -415,6 +415,15 @@ class SaprovController extends Controller
                 ->select(DB::raw('SUM(preciod * cantidad * signo) as total'))
                 ->value('total') ?? 0;
 
+            // ========== UNIDADES COMPRADAS ==========
+            $producto->unidades_compradas = Saitemcom::where('coditem', $producto->codprod)
+                ->where('codprov', $codprov)
+                ->whereRaw("fk_sucursal in ($sucursalIds)")
+                ->whereIn('tipocom', ['H', 'I'])
+                ->whereBetween('fechae', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
+                ->select(DB::raw('SUM(cantidad * signo) as total'))
+                ->value('total') ?? 0;
+
             // ========== VENTAS FILTRADAS POR PROVEEDOR ==========
             $infoSerial = $this->getProductoSerialInfo($producto->codprod, $comercial);
 
@@ -822,6 +831,125 @@ class SaprovController extends Controller
             'compras_30dias' => $compras_30dias,
             'ventas_30dias' => $ventas_30dias,
         ];
+    }
+
+    /**
+     * Obtener compras diarias de un producto en un rango de fechas
+     * + desglose por sucursal
+     */
+    public function comprasDiariasProducto(Request $request)
+    {
+        $request->validate([
+            'codprod'    => 'required|string',
+            'codprov'    => 'required|string',
+            'fecha_desde'=> 'required|date',
+            'fecha_hasta'=> 'required|date',
+        ]);
+
+        $codprod     = $request->codprod;
+        $codprov     = $request->codprov;
+        $fecha_desde = $request->fecha_desde;
+        $fecha_hasta = $request->fecha_hasta;
+
+        $comercial = session('comercialid') ?: 1;
+
+        $sucursales = Sasucursal::where('fk_comercial', $comercial)->get();
+        $sucursalIds = implode(',', $sucursales->pluck('id')->toArray());
+
+        $sucursalesMap = $sucursales->pluck('descrip', 'id')->toArray();
+
+        // ----- Por día -----
+        $comprasPorDia = Saitemcom::where('coditem', $codprod)
+            ->where('codprov', $codprov)
+            ->whereRaw("fk_sucursal in ($sucursalIds)")
+            ->whereIn('tipocom', ['H', 'I'])
+            ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:58.00'])
+            ->select(
+                DB::raw("DATE(fechae) as fecha"),
+                DB::raw("SUM(cantidad * signo) as unidades")
+            )
+            ->groupBy(DB::raw("DATE(fechae)"))
+            ->orderBy('fecha')
+            ->get()
+            ->keyBy('fecha');
+
+        // ----- Por sucursal -----
+        $comprasPorSuc = Saitemcom::where('coditem', $codprod)
+            ->where('codprov', $codprov)
+            ->whereRaw("fk_sucursal in ($sucursalIds)")
+            ->whereIn('tipocom', ['H', 'I'])
+            ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:58.00'])
+            ->select(
+                'fk_sucursal',
+                DB::raw("SUM(cantidad * signo) as unidades")
+            )
+            ->groupBy('fk_sucursal')
+            ->orderByDesc('unidades')
+            ->get();
+
+        // ============================================================
+        // Armado de días (rellenando sin compras)
+        // ============================================================
+        $dias = [];
+        $inicio = Carbon::parse($fecha_desde);
+        $fin    = Carbon::parse($fecha_hasta);
+        $total  = 0;
+
+        for ($d = $inicio->copy(); $d->lte($fin); $d->addDay()) {
+            $key = $d->format('Y-m-d');
+            $unidades = isset($comprasPorDia[$key]) ? (float) $comprasPorDia[$key]->unidades : 0;
+
+            $dias[] = [
+                'fecha'      => $key,
+                'fecha_fmt'  => $d->format('d/m/Y'),
+                'dia_semana' => $d->locale('es')->isoFormat('ddd'),
+                'unidades'   => $unidades,
+            ];
+
+            $total += $unidades;
+        }
+
+        // ============================================================
+        // Armado por sucursal
+        // ============================================================
+        $sucursalesData = [];
+        foreach ($comprasPorSuc as $item) {
+            $sucId     = $item->fk_sucursal;
+            $nombreRaw = $sucursalesMap[$sucId] ?? ('Sucursal ' . $sucId);
+            $nombre    = str_replace('SARA', '', $nombreRaw);
+
+            $sucursalesData[] = [
+                'id'        => $sucId,
+                'nombre'    => trim($nombre),
+                'unidades'  => (float) $item->unidades,
+            ];
+        }
+
+        // Producto
+        $producto = Saprod::where('codprod', $codprod)
+            ->where('comercial', $comercial)
+            ->select('codprod', 'descrip', 'marca')
+            ->first();
+
+        $mejorDia = collect($dias)->sortByDesc('unidades')->first();
+        $mejorSucursal = count($sucursalesData) > 0
+            ? collect($sucursalesData)->sortByDesc('unidades')->first()
+            : null;
+
+        return response()->json([
+            'success'  => true,
+            'producto' => $producto,
+            'dias'     => $dias,
+            'sucursales' => $sucursalesData,
+            'resumen'  => [
+                'total_unidades'  => $total,
+                'promedio_diario' => count($dias) > 0 ? round($total / count($dias), 1) : 0,
+                'mejor_dia'       => $mejorDia && $mejorDia['unidades'] > 0 ? $mejorDia : null,
+                'mejor_sucursal'  => $mejorSucursal,
+                'dias_con_compra' => collect($dias)->where('unidades', '>', 0)->count(),
+                'dias_totales'    => count($dias),
+            ],
+        ]);
     }
 
     /**

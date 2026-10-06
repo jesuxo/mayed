@@ -454,6 +454,7 @@
                                 <th class="sortable" data-sort="descrip">Producto  <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable" data-sort="marca">Marca     <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="stock">Stock Total <i class="ri-arrow-up-down-line"></i></th>
+                                <th class="sortable text-end" data-sort="unidades_compradas">Unidades Compradas <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="unidades_vendidas">Unidades Vendidas <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_sin_venta">Días sin Venta <i class="ri-arrow-up-down-line"></i></th>
                                 <th class="sortable text-end" data-sort="dias_stock">Días Stock <i class="ri-arrow-up-down-line"></i></th>
@@ -484,6 +485,24 @@
                                         {{ number_format($producto->existencia_actual+0 ?? 0, 0) }}
                                     </td>
 
+                                    <!-- Unidades Compradas -->
+                                    <td class="text-end">
+                                        @if(($producto->unidades_compradas ?? 0) > 0)
+                                            <button type="button"
+                                                    class="badge border-0 ver-compras-diarias"
+                                                    style="cursor: pointer; background:#fd7e14; color:white;"
+                                                    data-codprod="{{ $producto->codprod }}"
+                                                    data-descrip="{{ $producto->descrip }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#comprasDiariasModal"
+                                                    title="Ver detalle diario de compras">
+                                                <i class="ri-shopping-cart-line"></i>
+                                                {{ number_format($producto->unidades_compradas, 0) }}
+                                            </button>
+                                        @else
+                                            <span class="badge bg-secondary">0</span>
+                                        @endif
+                                    </td>
                                     <!-- Unidades Vendidas -->
                                     <td class="text-end">
                                         @if(($producto->unidades_vendidas ?? 0) > 0)
@@ -610,7 +629,7 @@
                                 </tr>
                             @empty
                                 <tr id="filaSinProductos">
-                                    <td colspan="11" class="text-center py-4">
+                                    <td colspan="12" class="text-center py-4">
                                         <i class="ri-inbox-line fs-1 text-muted"></i>
                                         <p class="text-muted mt-2">No hay productos para mostrar</p>
                                     </td>
@@ -806,6 +825,124 @@
             </div>
         </div>
     </div>
+    <!-- Modal de compras diarias por producto -->
+    <div class="modal fade" id="comprasDiariasModal" tabindex="-1" aria-labelledby="comprasDiariasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%); color: white;">
+                    <div>
+                        <h5 class="modal-title text-white mb-0" id="comprasDiariasModalLabel">
+                            <i class="ri-shopping-cart-line"></i> Detalle Diario de Compras
+                        </h5>
+                        <small class="text-white-50" id="comprasDiariasSubtitulo"></small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- KPIs -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <div class="p-2 rounded text-center" style="background:#fff3e0;">
+                                <small class="text-muted d-block">Total Comprado</small>
+                                <strong class="fs-5" style="color:#fd7e14;" id="kpiCompraTotal">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded text-center" style="background:#e8f8f0;">
+                                <small class="text-muted d-block">Promedio Diario</small>
+                                <strong class="fs-5 text-success" id="kpiCompraPromedio">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded text-center" style="background:#fff8e1;">
+                                <small class="text-muted d-block">Mejor Día</small>
+                                <strong class="fs-5 text-warning" id="kpiCompraMejor">-</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs mb-3" id="comprasDiariasTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tab-compra-por-dia" data-bs-toggle="tab"
+                                    data-bs-target="#pane-compra-por-dia" type="button" role="tab">
+                                <i class="ri-calendar-line"></i> Por Día
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-compra-por-sucursal" data-bs-toggle="tab"
+                                    data-bs-target="#pane-compra-por-sucursal" type="button" role="tab">
+                                <i class="ri-store-2-line"></i> Por Sucursal
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- TAB POR DÍA -->
+                        <div class="tab-pane fade show active" id="pane-compra-por-dia" role="tabpanel">
+                            <div style="position: relative; height: 240px;">
+                                <canvas id="comprasDiariasChart"></canvas>
+                            </div>
+
+                            <div class="table-responsive mt-3" style="max-height: 220px; overflow-y: auto;">
+                                <table class="table table-sm table-hover mb-0">
+                                    <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                                    <tr>
+                                        <th style="width: 30%;">Fecha</th>
+                                        <th style="width: 15%;" class="text-center">Día</th>
+                                        <th style="width: 15%;" class="text-end">Unidades</th>
+                                        <th style="width: 40%;">Participación</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="comprasDiariasTableBody">
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB POR SUCURSAL -->
+                        <div class="tab-pane fade" id="pane-compra-por-sucursal" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <div style="position: relative; height: 240px;">
+                                        <canvas id="comprasSucursalChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-md-7">
+                                    <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover mb-0">
+                                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Sucursal</th>
+                                                <th class="text-end">Unidades</th>
+                                                <th class="text-end">%</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody id="comprasSucursalTableBody">
+                                            <tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="mejorSucursalCompraBox" class="alert alert-warning mt-3 mb-0 d-none">
+                                <i class="ri-trophy-line"></i>
+                                <strong>Top sucursal:</strong>
+                                <span id="mejorSucursalCompraTexto"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @include('proveedores.partials.producto_edit_modal')
 @endsection
 
@@ -817,6 +954,257 @@
 
     <script>
         $(document).ready(function() {
+
+            // ============================================================
+// COMPRAS DIARIAS POR PRODUCTO (+ POR SUCURSAL)
+// ============================================================
+            let comprasDiariasChartInstance = null;
+            let comprasSucursalChartInstance = null;
+
+            $(document).on('click', '.ver-compras-diarias', function () {
+                const codprod = $(this).data('codprod');
+                const descrip = $(this).data('descrip');
+                const codprov = '{{ $proveedor->codprov }}';
+                const fecha_desde = '{{ $fecha_desde }}';
+                const fecha_hasta = '{{ $fecha_hasta }}';
+
+                $('#comprasDiariasSubtitulo').text(descrip + ' — ' +
+                    new Date(fecha_desde).toLocaleDateString('es-VE') + ' al ' +
+                    new Date(fecha_hasta).toLocaleDateString('es-VE'));
+                $('#kpiCompraTotal, #kpiCompraPromedio, #kpiCompraMejor').text('...');
+                $('#comprasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>');
+                $('#comprasSucursalTableBody').html('<tr><td colspan="4" class="text-center text-muted py-3">Cargando...</td></tr>');
+                $('#mejorSucursalCompraBox').addClass('d-none');
+
+                if (typeof bootstrap !== 'undefined') {
+                    const primerTab = document.querySelector('#tab-compra-por-dia');
+                    if (primerTab) new bootstrap.Tab(primerTab).show();
+                }
+
+                if (comprasDiariasChartInstance) { comprasDiariasChartInstance.destroy(); comprasDiariasChartInstance = null; }
+                if (comprasSucursalChartInstance) { comprasSucursalChartInstance.destroy(); comprasSucursalChartInstance = null; }
+
+                $.ajax({
+                    url: '{{ route("proveedores.compras-diarias-producto") }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        codprod: codprod,
+                        codprov: codprov,
+                        fecha_desde: fecha_desde,
+                        fecha_hasta: fecha_hasta
+                    },
+                    success: function (response) {
+                        if (!response.success) {
+                            $('#comprasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                            return;
+                        }
+
+                        const dias = response.dias || [];
+                        const sucursales = response.sucursales || [];
+                        const resumen = response.resumen || {};
+
+                        // KPIs
+                        $('#kpiCompraTotal').text(Number(resumen.total_unidades || 0).toLocaleString('es-VE'));
+                        $('#kpiCompraPromedio').text(Number(resumen.promedio_diario || 0).toLocaleString('es-VE'));
+                        if (resumen.mejor_dia) {
+                            $('#kpiCompraMejor').text(resumen.mejor_dia.unidades + ' (' + resumen.mejor_dia.fecha_fmt + ')');
+                        } else {
+                            $('#kpiCompraMejor').text('-');
+                        }
+
+                        // GRÁFICO POR DÍA
+                        const labels = dias.map(d => d.fecha_fmt);
+                        const valores = dias.map(d => d.unidades);
+
+                        const ctx = document.getElementById('comprasDiariasChart').getContext('2d');
+                        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+                        gradient.addColorStop(0, 'rgba(253, 126, 20, 0.6)');
+                        gradient.addColorStop(1, 'rgba(253, 126, 20, 0.05)');
+
+                        comprasDiariasChartInstance = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Unidades Compradas',
+                                    data: valores,
+                                    borderColor: '#fd7e14',
+                                    backgroundColor: gradient,
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.35,
+                                    pointBackgroundColor: '#fd7e14',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2,
+                                    pointRadius: 4,
+                                    pointHoverRadius: 7
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                legend: { display: false },
+                                tooltips: {
+                                    backgroundColor: 'rgba(0,0,0,0.8)',
+                                    callbacks: {
+                                        label: function (item) {
+                                            return ' ' + item.yLabel + ' unidades';
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    yAxes: [{
+                                        beginAtZero: true,
+                                        ticks: { precision: 0, fontColor: '#666' },
+                                        gridLines: { color: 'rgba(0,0,0,0.05)' }
+                                    }],
+                                    xAxes: [{
+                                        ticks: { fontColor: '#666', autoSkip: true, maxTicksLimit: 12 },
+                                        gridLines: { display: false }
+                                    }]
+                                }
+                            }
+                        });
+
+                        // Tabla por día
+                        const maxUnidades = Math.max(...valores, 1);
+                        const totalParaPorcentaje = resumen.total_unidades || 0;
+                        let htmlDias = '';
+
+                        dias.forEach(function (d) {
+                            const pct = totalParaPorcentaje > 0 ? (d.unidades / totalParaPorcentaje) * 100 : 0;
+                            const barraPct = (d.unidades / maxUnidades) * 100;
+
+                            let colorBarra = 'bg-secondary';
+                            if (d.unidades > 0) {
+                                if (barraPct >= 70) colorBarra = 'bg-success';
+                                else if (barraPct >= 30) colorBarra = 'bg-warning';
+                                else colorBarra = 'bg-info';
+                            }
+
+                            htmlDias += `
+                    <tr>
+                        <td><strong>${d.fecha_fmt}</strong></td>
+                        <td class="text-center text-muted text-capitalize">${d.dia_semana}</td>
+                        <td class="text-end">
+                            <span class="badge ${d.unidades > 0 ? 'bg-warning text-dark' : 'bg-light text-muted'}">
+                                ${Number(d.unidades).toLocaleString('es-VE')}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar ${colorBarra}" style="width: ${barraPct}%"></div>
+                                </div>
+                                <small class="text-muted" style="min-width: 40px; text-align: right;">${pct.toFixed(1)}%</small>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                        });
+
+                        $('#comprasDiariasTableBody').html(htmlDias);
+
+                        // GRÁFICO POR SUCURSAL
+                        const colores = [
+                            '#fd7e14', '#e83e8c', '#6f42c1', '#17a2b8', '#20c997',
+                            '#ffc107', '#dc3545', '#667eea', '#28a745', '#6c757d'
+                        ];
+
+                        if (sucursales.length > 0) {
+                            const labelsSuc = sucursales.map(s => s.nombre);
+                            const dataSuc   = sucursales.map(s => s.unidades);
+                            const colorsSuc = sucursales.map((s, i) => colores[i % colores.length]);
+
+                            const ctxSuc = document.getElementById('comprasSucursalChart').getContext('2d');
+                            comprasSucursalChartInstance = new Chart(ctxSuc, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: labelsSuc,
+                                    datasets: [{
+                                        data: dataSuc,
+                                        backgroundColor: colorsSuc,
+                                        borderWidth: 2,
+                                        borderColor: '#fff'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    cutoutPercentage: 55,
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: { boxWidth: 12, padding: 10, fontSize: 11 }
+                                    },
+                                    tooltips: {
+                                        backgroundColor: 'rgba(0,0,0,0.8)',
+                                        callbacks: {
+                                            label: function (item, data) {
+                                                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                                const val = item.xLabel || item.yLabel;
+                                                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                                return ' ' + item.label + ': ' + val + ' und (' + pct + '%)';
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            const totalSuc = dataSuc.reduce((a, b) => a + b, 0);
+                            let htmlSuc = '';
+                            sucursales.forEach(function (s, i) {
+                                const pct = totalSuc > 0 ? (s.unidades / totalSuc) * 100 : 0;
+                                const barraPct = totalSuc > 0 ? (s.unidades / Math.max(...dataSuc)) * 100 : 0;
+                                const colorBarra = colores[i % colores.length];
+
+                                htmlSuc += `
+                        <tr>
+                            <td>
+                                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+                                             background:${colorBarra};margin-right:6px;"></span>
+                                ${i + 1}
+                            </td>
+                            <td><strong>${s.nombre}</strong></td>
+                            <td class="text-end">${Number(s.unidades).toLocaleString('es-VE')}</td>
+                            <td class="text-end">
+                                <div class="d-flex align-items-center justify-content-end gap-2">
+                                    <div class="progress" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar" style="width: ${barraPct}%; background:${colorBarra};"></div>
+                                    </div>
+                                    <small class="text-muted">${pct.toFixed(1)}%</small>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                            });
+                            $('#comprasSucursalTableBody').html(htmlSuc);
+
+                            if (resumen.mejor_sucursal) {
+                                const ms = resumen.mejor_sucursal;
+                                const pctMs = totalSuc > 0 ? ((ms.unidades / totalSuc) * 100).toFixed(1) : 0;
+                                $('#mejorSucursalCompraTexto').text(
+                                    ms.nombre + ' con ' + Number(ms.unidades).toLocaleString('es-VE') +
+                                    ' unidades (' + pctMs + '% del total)'
+                                );
+                                $('#mejorSucursalCompraBox').removeClass('d-none');
+                            }
+                        } else {
+                            const ctxSuc = document.getElementById('comprasSucursalChart').getContext('2d');
+                            ctxSuc.clearRect(0, 0, ctxSuc.canvas.width, ctxSuc.canvas.height);
+                            $('#comprasSucursalTableBody').html(
+                                '<tr><td colspan="4" class="text-center text-muted py-3">' +
+                                '<i class="ri-inbox-line fs-3 d-block"></i>Sin compras por sucursal en el período</td></tr>'
+                            );
+                        }
+                    },
+                    error: function (xhr) {
+                        console.error('Error:', xhr);
+                        $('#comprasDiariasTableBody').html('<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                        $('#comprasSucursalTableBody').html('<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                    }
+                });
+            });
             // ============================================================
             // VENTAS DIARIAS POR PRODUCTO (+ POR SUCURSAL)
             // ============================================================
@@ -1130,7 +1518,7 @@
                 $('#sinResultados').remove();
                 if (visibles === 0 && tokens.length > 0) {
                     $('#productosTableBody').append(
-                        '<tr id="sinResultados"><td colspan="11" class="text-center py-4">' +
+                        '<tr id="sinResultados"><td colspan="12" class="text-center py-4">' +
                         '<i class="ri-search-eye-line fs-1 text-muted"></i>' +
                         '<p class="text-muted mt-2">No se encontraron productos para: <strong>' +
                         termino + '</strong></p></td></tr>'
@@ -1451,6 +1839,10 @@
                             aVal = $(a).find('td').eq(idx).text().trim().toLowerCase();
                             bVal = $(b).find('td').eq(idx).text().trim().toLowerCase();
                             break;
+                        case 'unidades_compradas':
+                            aVal = parseFloat($(a).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
+                            bVal = parseFloat($(b).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
+                            break;
                         case 'unidades_vendidas':
                             aVal = parseFloat($(a).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
                             bVal = parseFloat($(b).find('td').eq(idx).text().replace(/\./g, '').replace(',', '.')) || 0;
@@ -1674,7 +2066,7 @@
                                 const margen      = costo > 0 ? ((precioVenta - costo) / costo) * 100 : 0;
 
                                 // Actualizar ganancia
-                                const $tdGanancia = fila.find('td').eq(7);
+                                const $tdGanancia = fila.find('td').eq(8);
                                 $tdGanancia
                                     .removeClass('text-danger text-success')
                                     .addClass(ganancia < 0 ? 'text-danger' : 'text-success')
@@ -1684,7 +2076,7 @@
                                 let badgeClass = 'bg-secondary';
                                 if (margen > 0) badgeClass = 'bg-success';
                                 else if (margen < 0) badgeClass = 'bg-danger';
-                                fila.find('td').eq(8).html('<span class="badge ' + badgeClass + '">' + margen.toFixed(1) + '%</span>');
+                                fila.find('td').eq(9).html('<span class="badge ' + badgeClass + '">' + margen.toFixed(1) + '%</span>');
                             }
 
                             // Cerrar modal
