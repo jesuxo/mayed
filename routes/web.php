@@ -332,6 +332,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/cxcdescuento',  'aplicarDescuento')->name('cxcdescuento');
     });
 
+    Route::post('proveedores/compras-historicas-producto', [SaprovController::class, 'comprasHistoricasProducto'])
+        ->name('proveedores.compras-historicas-producto');
     Route::post('proveedores/compras-diarias-producto', [SaprovController::class, 'comprasDiariasProducto'])
         ->name('proveedores.compras-diarias-producto');
     Route::post('proveedores/ventas-diarias-producto', [SaprovController::class, 'ventasDiariasProducto'])

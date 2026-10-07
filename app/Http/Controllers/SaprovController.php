@@ -338,6 +338,95 @@ class SaprovController extends Controller
     }
 
     /**
+     * Obtener el historial completo de compras de un producto a un proveedor
+     * (sin filtro de fechas)
+     */
+    public function comprasHistoricasProducto(Request $request)
+    {
+        $request->validate([
+            'codprod' => 'required|string',
+            'codprov' => 'required|string',
+        ]);
+
+        $codprod = $request->codprod;
+        $codprov = $request->codprov;
+
+        $comercial = session('comercialid') ?: 1;
+
+        $sucursales = Sasucursal::where('fk_comercial', $comercial)->get();
+        $sucursalIds = implode(',', $sucursales->pluck('id')->toArray());
+        $sucursalesMap = $sucursales->pluck('descrip', 'id')->toArray();
+
+        // ========== TODAS LAS COMPRAS DEL PRODUCTO A ESE PROVEEDOR ==========
+        $compras = Saitemcom::where('coditem', $codprod)
+            ->where('codprov', $codprov)
+            ->whereRaw("fk_sucursal in ($sucursalIds)")
+            ->whereIn('tipocom', ['H', 'I'])
+            ->orderBy('fechae', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        // ========== CALCULAR TOTALES ==========
+        $totalUnidades     = 0;
+        $totalMonto        = 0;
+        $totalCompras      = 0;
+        $totalDevoluciones = 0;
+        $registros         = [];
+
+        foreach ($compras as $item) {
+            $signo    = $item->tipocom == 'I' ? -1 : 1;
+            $cantidad = (float) $item->cantidad * $signo;
+            $monto    = (float) $item->preciod * $item->cantidad * $signo;
+
+            $sucId     = $item->fk_sucursal;
+            $nombreRaw = $sucursalesMap[$sucId] ?? ('Sucursal ' . $sucId);
+            $nombreSuc = trim(str_replace('SARA', '', $nombreRaw));
+
+            $registros[] = [
+                'id'         => $item->id,
+                'fecha'      => $item->fechae,
+                'fecha_fmt'  => Carbon::parse($item->fechae)->format('d/m/Y'),
+                'documento'  => $item->numerod,
+                'tipocom'    => $item->tipocom,
+                'tipo_texto' => $item->tipocom == 'H' ? 'Compra' : 'Devolución',
+                'cantidad'   => $cantidad,
+                'preciod'    => (float) $item->preciod,
+                'monto'      => $monto,
+                'sucursal'   => $nombreSuc,
+                'compra_id'  => $item->compra ? $item->compra->id : null,
+            ];
+
+            $totalUnidades += $cantidad;
+            $totalMonto    += $monto;
+
+            if ($item->tipocom == 'H') {
+                $totalCompras += (float) $item->cantidad;
+            } else {
+                $totalDevoluciones += (float) $item->cantidad;
+            }
+        }
+
+        // ========== PRODUCTO ==========
+        $producto = Saprod::where('codprod', $codprod)
+            ->where('comercial', $comercial)
+            ->select('codprod', 'descrip', 'marca')
+            ->first();
+
+        return response()->json([
+            'success'   => true,
+            'producto'  => $producto,
+            'registros' => $registros,
+            'resumen'   => [
+                'total_unidades'     => $totalUnidades,
+                'total_monto'        => $totalMonto,
+                'total_compras'      => $totalCompras,
+                'total_devoluciones' => $totalDevoluciones,
+                'total_registros'    => count($registros),
+            ],
+        ]);
+    }
+
+    /**
      * Obtener productos del proveedor con estadísticas
      */
     private function getProductosProveedor($codprov, $fecha_desde, $fecha_hasta, $orden, $filtro = 'todos')

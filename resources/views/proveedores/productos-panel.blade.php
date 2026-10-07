@@ -943,6 +943,85 @@
         </div>
     </div>
 
+    <div class="modal fade" id="comprasHistoricasModal" tabindex="-1" aria-labelledby="comprasHistoricasModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #6f42c1 0%, #667eea 100%); color: white;">
+                    <div>
+                        <h5 class="modal-title text-white mb-0" id="comprasHistoricasModalLabel">
+                            <i class="ri-history-line"></i> Historial Completo de Compras
+                        </h5>
+                        <small class="text-white-50" id="comprasHistoricasSubtitulo"></small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- KPIs (solo compras) -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 rounded text-center" style="background:#f3e8ff;">
+                                <small class="text-muted d-block">Total Comprado</small>
+                                <strong class="fs-5" style="color:#6f42c1;" id="kpiHistComprado">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 rounded text-center" style="background:#fff3e0;">
+                                <small class="text-muted d-block">Monto Total</small>
+                                <strong class="fs-5" style="color:#fd7e14;" id="kpiHistMonto">$0</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 rounded text-center" style="background:#e8f8f0;">
+                                <small class="text-muted d-block">Compras</small>
+                                <strong class="fs-5 text-success" id="kpiHistCompras">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 rounded text-center" style="background:#ffeaea;">
+                                <small class="text-muted d-block">Devoluciones</small>
+                                <strong class="fs-5 text-danger" id="kpiHistDevoluciones">0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla -->
+                    <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th style="width: 90px;">Fecha</th>
+                                <th style="width: 110px;">Documento</th>
+                                <th style="width: 100px;" class="text-center">Tipo</th>
+                                <th class="text-end" style="width: 90px;">Cantidad</th>
+                                <th class="text-end" style="width: 110px;">Precio Unit.</th>
+                                <th class="text-end" style="width: 120px;">Monto</th>
+                                <th>Sucursal</th>
+                            </tr>
+                            </thead>
+                            <tbody id="comprasHistoricasTableBody">
+                            <tr><td colspan="7" class="text-center text-muted py-3">Cargando...</td></tr>
+                            </tbody>
+                            <tfoot class="table-light" style="position: sticky; bottom: 0;">
+                            <tr class="fw-bold">
+                                <td colspan="3" class="text-end">TOTALES:</td>
+                                <td class="text-end" id="totalHistUnidades">0</td>
+                                <td></td>
+                                <td class="text-end" id="totalHistMonto">$0</td>
+                                <td></td>
+                            </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @include('proveedores.partials.producto_edit_modal')
 @endsection
 
@@ -954,6 +1033,96 @@
 
     <script>
         $(document).ready(function() {
+
+            $(document).on('click', '.ver-compras-historicas', function () {
+                const codprod = $(this).data('codprod');
+                const descrip = $(this).data('descrip');
+                const codprov = '{{ $proveedor->codprov }}';
+
+                $('#comprasHistoricasSubtitulo').text(descrip + ' — Proveedor: {{ $proveedor->descrip }}');
+                $('#kpiHistComprado, #kpiHistMonto, #kpiHistCompras, #kpiHistDevoluciones').text('...');
+                $('#comprasHistoricasTableBody').html('<tr><td colspan="7" class="text-center text-muted py-3">Cargando...</td></tr>');
+
+                $.ajax({
+                    url: '{{ route("proveedores.compras-historicas-producto") }}',
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        codprod: codprod,
+                        codprov: codprov
+                    },
+                    success: function (response) {
+                        if (!response.success) {
+                            $('#comprasHistoricasTableBody').html('<tr><td colspan="7" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                            return;
+                        }
+
+                        const registros = response.registros || [];
+                        const resumen   = response.resumen || {};
+
+                        // KPIs
+                        $('#kpiHistComprado').text(Number(resumen.total_unidades || 0).toLocaleString('es-VE'));
+                        $('#kpiHistMonto').text('$' + Number(resumen.total_monto || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                        $('#kpiHistCompras').text(Number(resumen.total_compras || 0).toLocaleString('es-VE'));
+                        $('#kpiHistDevoluciones').text(Number(resumen.total_devoluciones || 0).toLocaleString('es-VE'));
+
+                        // Tabla
+                        let html = '';
+                        let totalUnidades = 0;
+                        let totalMonto = 0;
+
+                        if (registros.length === 0) {
+                            html = '<tr><td colspan="7" class="text-center text-muted py-3">' +
+                                '<i class="ri-inbox-line fs-3 d-block"></i>Sin compras registradas</td></tr>';
+                        } else {
+                            registros.forEach(function (r) {
+                                const esDevolucion = r.tipocom === 'I';
+                                const tipoColor = esDevolucion ? 'danger' : 'success';
+                                const cantColor = esDevolucion ? 'text-danger' : '';
+
+                                totalUnidades += r.cantidad;
+                                totalMonto    += r.monto;
+
+                                html += `
+                        <tr>
+                            <td><small>${r.fecha_fmt}</small></td>
+                            <td>
+                                <button type="button"
+                                        class="btn btn-sm btn-${tipoColor} ver-compra"
+                                        data-id="${r.compra_id}"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#compraModal">
+                                    ${r.documento}
+                                </button>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-${tipoColor}">${r.tipo_texto}</span>
+                            </td>
+                            <td class="text-end ${cantColor}">
+                                <strong>${Number(r.cantidad).toLocaleString('es-VE')}</strong>
+                            </td>
+                            <td class="text-end">
+                                $${Number(r.preciod).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </td>
+                            <td class="text-end ${cantColor}">
+                                $${Number(r.monto).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </td>
+                            <td><small>${r.sucursal}</small></td>
+                        </tr>
+                    `;
+                            });
+                        }
+
+                        $('#comprasHistoricasTableBody').html(html);
+                        $('#totalHistUnidades').text(totalUnidades.toLocaleString('es-VE'));
+                        $('#totalHistMonto').text('$' + totalMonto.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                    },
+                    error: function (xhr) {
+                        console.error('Error:', xhr);
+                        $('#comprasHistoricasTableBody').html('<tr><td colspan="7" class="text-center text-danger py-3">Error al cargar datos</td></tr>');
+                    }
+                });
+            });
 
             // ============================================================
 // COMPRAS DIARIAS POR PRODUCTO (+ POR SUCURSAL)
