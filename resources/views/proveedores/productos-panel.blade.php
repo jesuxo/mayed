@@ -571,43 +571,52 @@
 
                                     <!-- Última Compra -->
                                     <td class="text-end">
-                                        @if(isset($producto->ultima_compra_fecha) && $producto->ultima_compra_fecha)
-                                            <div class="d-flex flex-column align-items-end">
-                                                <small class="text-muted"> {{ \Carbon\Carbon::parse($producto->ultima_compra_fecha)->format('d/m/Y') }} Doc: {{ $producto->ultima_compra_documento ?? 'N/A' }}</small>
-                                                @if($producto->ultima_compra_dias > 30)
-                                                    <button type="button"
-                                                            class="btn btn-sm btn-danger ver-compra"
-                                                            data-id="{{ $producto->ultima_compra_id }}"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#compraModal" >
-                                                        {{ $producto->ultima_compra_dias }} días
-                                                    </button>
+                                        <div class="d-flex flex-column align-items-end gap-1">
 
-                                                @elseif($producto->ultima_compra_dias > 15)
+                                            @if(isset($producto->ultima_compra_fecha) && $producto->ultima_compra_fecha)
+                                                <small class="text-muted">
+                                                    {{ \Carbon\Carbon::parse($producto->ultima_compra_fecha)->format('d/m/Y') }}
+                                                    Doc: {{ $producto->ultima_compra_documento ?? 'N/A' }}
+                                                </small>
 
-                                                    <button type="button"
-                                                            class="btn btn-sm btn-warning ver-compra"
-                                                            data-id="{{ $producto->ultima_compra_id }}"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#compraModal" >
-                                                        {{ $producto->ultima_compra_dias }} días
-                                                    </button>
+                                                <div class="d-flex gap-1">
+                                                    {{-- Botón días (abre esa compra específica) --}}
+                                                    @if($producto->ultima_compra_dias > 30)
+                                                        <button type="button" class="btn btn-sm btn-danger ver-compra"
+                                                                data-id="{{ $producto->ultima_compra_id }}"
+                                                                data-bs-toggle="modal" data-bs-target="#compraModal">
+                                                            {{ $producto->ultima_compra_dias }} días
+                                                        </button>
+                                                    @elseif($producto->ultima_compra_dias > 15)
+                                                        <button type="button" class="btn btn-sm btn-warning ver-compra"
+                                                                data-id="{{ $producto->ultima_compra_id }}"
+                                                                data-bs-toggle="modal" data-bs-target="#compraModal">
+                                                            {{ $producto->ultima_compra_dias }} días
+                                                        </button>
+                                                    @else
+                                                        <button type="button" class="btn btn-sm btn-success ver-compra"
+                                                                data-id="{{ $producto->ultima_compra_id }}"
+                                                                data-bs-toggle="modal" data-bs-target="#compraModal">
+                                                            {{ $producto->ultima_compra_dias }} días
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="badge bg-secondary">Sin compras</span>
+                                            @endif
 
-                                                @else
+                                            {{-- 👇 ESTE ES EL BOTÓN DEL CLICK --}}
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary ver-compras-historicas"
+                                                    data-codprod="{{ $producto->codprod }}"
+                                                    data-descrip="{{ $producto->descrip }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#comprasHistoricasModal"
+                                                    title="Ver historial completo de compras">
+                                                <i class="ri-history-line"></i> Ver todas
+                                            </button>
 
-                                                    <button type="button"
-                                                            class="btn btn-sm btn-success ver-compra"
-                                                            data-id="{{ $producto->ultima_compra_id }}"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#compraModal" >
-                                                        {{ $producto->ultima_compra_dias }} días
-                                                    </button>
-                                                @endif
-
-                                            </div>
-                                        @else
-                                            <span class="badge bg-secondary">Sin compras</span>
-                                        @endif
+                                        </div>
                                     </td>
 
                                     <!-- Botones de Acción -->
