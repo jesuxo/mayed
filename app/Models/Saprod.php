@@ -11,9 +11,9 @@ class Saprod extends Model
 
     protected $table    = 'saprod';
     protected $fillable = ['codprod','descrip','descrip2','descrip3',
-                          'marca','refere','codinst','observaciones','activo',
-                          'esexento','exdecimal','cantxempaq','volumen','peso','unidad',
-                          'preciod','preciodant','preciodpro','preciod2','costod','costod2','costod3'];
+        'marca','refere','codinst','observaciones','activo',
+        'esexento','exdecimal','cantxempaq','volumen','peso','unidad',
+        'preciod','preciodant','preciodpro','preciod2','costod','costod2','costod3'];
 
     public function instancia(){
         $comercial = session('comercialid') ;
@@ -44,6 +44,24 @@ class Saprod extends Model
         return $this->hasMany(SaprodImagen::class, 'codprod', 'codprod')
             ->where('comercial', $this->comercial)
             ->orderBy('orden', 'asc');
+    }
+
+    public function toApiArray()
+    {
+        $data = $this->getAttributes();
+
+        $imagenes = $this->imagenes()->get();
+
+        $principal = $this->imagenPrincipal;
+        if ($principal) {
+            $principal->url = asset($principal->ruta);
+        }
+
+        $data['imagen_url'] = !empty($principal->url)
+            ? $principal->url
+            : null;
+
+        return $data;
     }
 
     public function imagenPrincipal()
