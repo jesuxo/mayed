@@ -1230,12 +1230,16 @@ class SaprodController extends Controller
         $sucursal   = Sasucursal::find($sucursalid);
         $comercial  = $sucursal->fk_comercial;
 
+        $servicios = Saserv::whereRaw("codserv not in (select codserv from saservsucursal where fk_sucursal=$sucursalid )")->get()->take(10);
+
         $productos = Saprod::where('comercial',$comercial)
             ->whereRaw("codprod not in (select codprod from saprodsucursal where fk_sucursal=$sucursalid )")->limit(1000)->get();
 
-        $servicios = Saserv::whereRaw("codserv not in (select codserv from saservsucursal where fk_sucursal=$sucursalid )")->get()->take(10);
+        $productosConImagen = $productos->map(function($producto) {
+            return $producto->toApiArray();
+        });
 
-        return response()->json(['success'=>'success', 'newproductos' => $productos, 'newservicios' => $servicios]);
+        return response()->json(['success'=>'success', 'newproductos' => $productosConImagen, 'newservicios' => $servicios]);
     }
 
     public function productosinstsancias(Request $request)
