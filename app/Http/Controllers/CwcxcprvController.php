@@ -82,6 +82,7 @@ class CwcxcprvController extends Controller
 
                             // Guardar línea para el reporte
                             $lineascxp[$cxp->id] = [
+                                'id'      => $cxp->id      ?? '',
                                 'numerod' => $cxp->numerod ?? '',
                                 'codprov' => $cxp->codprov ?? '',
                                 'actions' => 'Sincronizada'
@@ -158,18 +159,12 @@ class CwcxcprvController extends Controller
                 $html .= '</table>';
             }
 
-            Log::info('Sincronización completada', [
-                'sucursal' => $sucursalId,
-                'registros_sincronizados' => $updatedCount,
-                'total_recibidos' => count($cuentasxpagar)
-            ]);
-
             return response()->json([
                 'success' => true,
                 'updated' => true,
-                'count' => $updatedCount,
-                'html' => $html,
-                'lineas' => $lineascxp
+                'count'   => $updatedCount,
+                'html'    => $html,
+                'lineas'  => $lineascxp
             ]);
 
         } catch (\Exception $e) {
