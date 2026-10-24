@@ -1601,22 +1601,28 @@ class SaprodController extends Controller
             $comerciales = Sacomercial::where('match',$match)->get();
 
             foreach ($comerciales as $comercial){
-                $newprod = new Saprod();
-                $newprod->fill($request->all());
-                $newprod->codprod   = substr($request->codprod,0,15);
+                $existe = Saprod::where('codprod', $request->codprod)
+                                  ->where('comercial', $comercial)
+                                  ->exists();
 
-                if(isset($request->preciodpro) and $request->preciodpro >0) {
-                    $newprod->preciodant  = 0;
-                    $newprod->preciod     = $request->preciodpro;
-                    $newprod->preciodpro  = $request->preciodpro;
+                if(!$existe){
+                    $newprod = new Saprod();
+                    $newprod->fill($request->all());
+                    $newprod->codprod   = substr($request->codprod,0,15);
+
+                    if(isset($request->preciodpro) and $request->preciodpro >0) {
+                        $newprod->preciodant  = 0;
+                        $newprod->preciod     = $request->preciodpro;
+                        $newprod->preciodpro  = $request->preciodpro;
+                    }
+                    if(isset($request->costod3) and $request->costod3 >0) {
+                        $newprod->costod  = $request->costod3;
+                        $newprod->costod2 = $request->costod3;
+                        $newprod->costod3 = $request->costod3;
+                    }
+                    $newprod->comercial = $comercial->id;
+                    $newprod->save();
                 }
-                if(isset($request->costod3) and $request->costod3 >0) {
-                    $newprod->costod  = $request->costod3;
-                    $newprod->costod2 = $request->costod3;
-                    $newprod->costod3 = $request->costod3;
-                }
-                $newprod->comercial = $comercial->id;
-                $newprod->save();
             }
             return redirect()->route('productos.index');
 
