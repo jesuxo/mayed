@@ -1888,13 +1888,10 @@ class SaprovController extends Controller
         ));
     }
 
-    /**
-     * Obtener resumen general de cuentas por pagar de todos los proveedores
-     */
     public function getResumenGeneralCuentasPorPagar(Request $request)
     {
         $soloVencidos = $request->get('solovencidos', false);
-        $fechavence = $request->get('fechavence', '');
+        $fechavence   = $request->get('fechavence', '');
 
         $query = Cwcxcprv::where('signo', 1)
             ->whereRaw('(monto - abonado) != 0')
@@ -1918,67 +1915,77 @@ class SaprovController extends Controller
             });
         }
 
-        // Filtrar por fecha de vencimiento
+        // Filtrar por fecha de vencimiento (acepta dd/mm/yyyy, dd-mm-yyyy o yyyy-mm-dd)
         if ($fechavence) {
-            list($dv, $mv, $yv) = explode("/", $fechavence);
-            $fechaVenceFilter = "$yv-$mv-$dv";
-            $query->whereExists(function($q) use ($fechaVenceFilter) {
-                $q->select(DB::raw(1))
-                    ->from('cwcxcprv as c2')
-                    ->whereRaw('c2.codprov = cwcxcprv.codprov')
-                    ->where('c2.signo', 1)
-                    ->whereDate('c2.fechav', '>=', $fechaVenceFilter);
-            });
+            $fechaVenceFilter = null;
+            if (preg_match('/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/', $fechavence, $m)) {
+                $fechaVenceFilter = "{$m[3]}-{$m[2]}-{$m[1]}";
+            } elseif (preg_match('/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})$/', $fechavence, $m)) {
+                $fechaVenceFilter = "{$m[1]}-{$m[2]}-{$m[3]}";
+            }
+
+            if ($fechaVenceFilter) {
+                $query->whereExists(function($q) use ($fechaVenceFilter) {
+                    $q->select(DB::raw(1))
+                        ->from('cwcxcprv as c2')
+                        ->whereRaw('c2.codprov = cwcxcprv.codprov')
+                        ->where('c2.signo', 1)
+                        ->whereDate('c2.fechav', '>=', $fechaVenceFilter);
+                });
+            }
         }
 
         $resumen = $query->having('deuda', '>', 0)
             ->orderBy('deuda', 'desc')
             ->get();
 
-        // Agregar nombre del proveedor
         foreach ($resumen as $item) {
             $proveedor = Saprov::where('codprov', $item->codprov)->first();
             $item->empresa = $proveedor ? $proveedor->descrip : $item->codprov;
         }
 
         $totales = [
-            'monto' => $resumen->sum('monto'),
+            'monto'   => $resumen->sum('monto'),
             'abonado' => $resumen->sum('abonado'),
-            'deuda' => $resumen->sum('deuda')
+            'deuda'   => $resumen->sum('deuda'),
         ];
 
         return response()->json([
             'success' => true,
-            'data' => $resumen,
-            'totales' => $totales
+            'data'    => $resumen,
+            'totales' => $totales,
         ]);
     }
 
     public function getCuentasPorPagar($codprov, Request $request)
     {
-        $soloResumen  = (isset($request->soloResumen) )? $request->soloResumen  : '';
-        $solovencidos = (isset($request->solovencidos))? $request->solovencidos : '';
-        $fechavence   = (isset($request->fechavence))  ? $request->fechavence   : '';
+        $soloResumen  = $request->soloResumen  ?? '';
+        $solovencidos = $request->solovencidos ?? '';
+        $fechavence   = $request->fechavence   ?? '';
 
         $query = Cwcxcprv::where('codprov', $codprov)
             ->where('signo', 1)
             ->whereRaw('(monto - abonado) != 0');
 
-        // Filtrar solo vencidos
         if ($solovencidos) {
             $hoy = date('Y-m-d');
             $query->whereDate('fechav', '<', $hoy);
         }
 
-        // Filtrar por fecha de vencimiento
         if ($fechavence) {
-            list($dv, $mv, $yv) = explode("/", $fechavence);
-            $fechaVenceFilter = "$yv-$mv-$dv";
-            $query->whereDate('fechav', '>=', $fechaVenceFilter);
+            $fechaVenceFilter = null;
+            if (preg_match('/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/', $fechavence, $m)) {
+                $fechaVenceFilter = "{$m[3]}-{$m[2]}-{$m[1]}";
+            } elseif (preg_match('/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})$/', $fechavence, $m)) {
+                $fechaVenceFilter = "{$m[1]}-{$m[2]}-{$m[3]}";
+            }
+
+            if ($fechaVenceFilter) {
+                $query->whereDate('fechav', '>=', $fechaVenceFilter);
+            }
         }
 
         if ($soloResumen) {
-            // Resumen por proveedor
             $resumen = $query->select(
                 'codprov',
                 DB::raw('SUM(monto) as monto'),
@@ -1987,7 +1994,6 @@ class SaprovController extends Controller
             )->groupBy('codprov')->first();
 
             if ($resumen) {
-                // Obtener nombre del proveedor
                 $proveedor = Saprov::where('codprov', $codprov)->first();
                 $resumen->empresa = $proveedor ? $proveedor->descrip : $codprov;
             }
@@ -1995,10 +2001,9 @@ class SaprovController extends Controller
             return response()->json([
                 'success'     => true,
                 'soloResumen' => true,
-                'data'        => $resumen
+                'data'        => $resumen,
             ]);
         } else {
-            // Detalle de documentos
             $cuentas = $query->select(
                 'id',
                 'numerod',
@@ -2023,7 +2028,7 @@ class SaprovController extends Controller
                 'data'          => $cuentas,
                 'total_monto'   => $totalMonto,
                 'total_abonado' => $totalAbonado,
-                'total_deuda'   => $totalDeuda
+                'total_deuda'   => $totalDeuda,
             ]);
         }
     }
