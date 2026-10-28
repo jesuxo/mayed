@@ -188,6 +188,16 @@
         #resumenGeneralCxpCard.hidden {
             display: none;
         }
+        .sortable-cxp {
+            user-select: none;
+            transition: background-color 0.15s;
+        }
+        .sortable-cxp:hover {
+            background-color: #e9ecef;
+        }
+        .sortable-cxp i {
+            margin-left: 3px;
+        }
     </style>
 @endsection
 @section('content')
@@ -1425,26 +1435,84 @@
         }
 
         /**
-         * Renderizar detalle de cuentas por pagar
+         * Aplica el ordenamiento actual a los datos de CxP
          */
+        function aplicarOrdenamientoCxp(data) {
+            if (!cxpSortState.column) return data;
+
+            const col = cxpSortState.column;
+            const dir = cxpSortState.direction === 'asc' ? 1 : -1;
+
+            return [...data].sort(function(a, b) {
+                let va = a[col];
+                let vb = b[col];
+
+                // Columnas numéricas
+                if (['monto', 'abonado', 'deuda'].includes(col)) {
+                    va = parseFloat(va) || 0;
+                    vb = parseFloat(vb) || 0;
+                    return (va - vb) * dir;
+                }
+
+                // Columnas de fecha (formato dd/mm/yyyy o ya formateadas)
+                if (col === 'fecha2' || col === 'fechav') {
+                    const fa = parseFechaCxp(a[col === 'fecha2' ? 'fecha2' : 'fechav2']);
+                    const fb = parseFechaCxp(b[col === 'fecha2' ? 'fecha2' : 'fechav2']);
+                    return (fa - fb) * dir;
+                }
+
+                // Texto (concepto)
+                va = (va || '').toString().toLowerCase();
+                vb = (vb || '').toString().toLowerCase();
+                if (va < vb) return -1 * dir;
+                if (va > vb) return 1 * dir;
+                return 0;
+            });
+        }
+
+        /**
+         * Convierte fecha dd/mm/yyyy a timestamp (para ordenar)
+         */
+        function parseFechaCxp(str) {
+            if (!str) return 0;
+            const partes = String(str).split('/');
+            if (partes.length !== 3) return 0;
+            const d = parseInt(partes[0], 10);
+            const m = parseInt(partes[1], 10) - 1;
+            const y = parseInt(partes[2], 10);
+            return new Date(y, m, d).getTime();
+        }
+
+
+        // Estado de ordenamiento (global para el módulo)
+        let cxpSortState = { column: null, direction: 'asc' };
+        let cxpDataCache = null;
+        let cxpTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
+
         function renderDetalleCuentas(data, totalMonto, totalAbonado, totalDeuda) {
             if (!data || data.length === 0) {
                 $('#cxp-content').html(`
-                    <div class="text-center py-4">
-                        <i class="ri-inbox-line fs-1 text-muted"></i>
-                        <p class="text-muted mt-2">No hay cuentas por pagar para este proveedor</p>
-                    </div>
-                `);
+            <div class="text-center py-4">
+                <i class="ri-inbox-line fs-1 text-muted"></i>
+                <p class="text-muted mt-2">No hay cuentas por pagar para este proveedor</p>
+            </div>
+        `);
                 return;
             }
 
-            // Convertir fechas para comparación
+            // Guardar datos en caché para reordenar sin re-consultar
+            cxpDataCache = data;
+            cxpTotalsCache = { monto: totalMonto, abonado: totalAbonado, deuda: totalDeuda };
+
+            // Aplicar ordenamiento actual
+            const sortedData = aplicarOrdenamientoCxp(data);
+
+            // Construir filas
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
 
             let rows = '';
-            data.forEach(function(item, index) {
-                // Verificar si está vencido
+            sortedData.forEach(function(item) {
                 let isOverdue = false;
                 let diasVencido = 0;
                 if (item.fechav) {
@@ -1453,8 +1521,7 @@
                         const fechaVence = new Date(partes[2], partes[1] - 1, partes[0]);
                         isOverdue = fechaVence < hoy;
                         if (isOverdue) {
-                            const diffTime = hoy - fechaVence;
-                            diasVencido = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            diasVencido = Math.ceil((hoy - fechaVence) / (1000 * 60 * 60 * 24));
                         }
                     }
                 }
@@ -1464,89 +1531,111 @@
                 const abonado = parseFloat(item.abonado) || 0;
 
                 rows += `
-                    <tr class="${isOverdue ? 'table-danger' : 'tablesss'}">
-                        <td class="text-center">${item.fecha2 || '-'}</td>
-                        <td class="text-center">
-                            ${item.fechav2 || '-'}
-                            ${isOverdue ? `<br><small class="text-danger">Vencido hace ${diasVencido} día(s)</small>` : ''}
-                        </td>
-                        <td class="text-wrap" style="max-width: 250px;">
-                            <strong>${escapeHtml(item.concepto || '-')}</strong>
-                            ${item.numerod ? `<br><small class="text-muted">Doc: ${escapeHtml(item.numerod)}</small>` : ''}
-                        </td>
-                        <td class="text-end">$${formatNumber(monto)}</td>
-                        <td class="text-end">$${formatNumber(abonado)}</td>
-                        <td class="text-end fw-bold ${deuda > 0 ? 'text-danger' : 'text-success'}">
-                            $${formatNumber(deuda)}
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary ver-detalle-cxp"
-                                    data-id="${item.id}"
-                                    data-numerod="${escapeHtml(item.numerod || '')}"
-                                    data-concepto="${escapeHtml(item.concepto || '')}"
-                                    data-monto="${monto}"
-                                    data-abonado="${abonado}"
-                                    data-deuda="${deuda}"
-                                    data-fecha2="${item.fecha2 || ''}"
-                                    data-fechav="${item.fechav2 || ''}">
-                                <i class="ri-eye-line"></i> Ver
-                            </button>
-                        </td>
-                    </tr>
-                `;
+            <tr class="${isOverdue ? 'table-danger' : ''}">
+                <td class="text-center">${item.fecha2 || '-'}</td>
+                <td class="text-center">
+                    ${item.fechav2 || '-'}
+                    ${isOverdue ? `<br><small class="text-danger">Vencido hace ${diasVencido} día(s)</small>` : ''}
+                </td>
+                <td class="text-wrap" style="max-width: 250px;">
+                    <strong>${escapeHtml(item.concepto || '-')}</strong>
+                    ${item.numerod ? `<br><small class="text-muted">Doc: ${escapeHtml(item.numerod)}</small>` : ''}
+                </td>
+                <td class="text-end">$${formatNumber(monto)}</td>
+                <td class="text-end">$${formatNumber(abonado)}</td>
+                <td class="text-end fw-bold ${deuda > 0 ? 'text-danger' : 'text-success'}">
+                    $${formatNumber(deuda)}
+                </td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary ver-detalle-cxp"
+                            data-id="${item.id}"
+                            data-numerod="${escapeHtml(item.numerod || '')}"
+                            data-concepto="${escapeHtml(item.concepto || '')}"
+                            data-monto="${monto}"
+                            data-abonado="${abonado}"
+                            data-deuda="${deuda}"
+                            data-fecha2="${item.fecha2 || ''}"
+                            data-fechav="${item.fechav2 || ''}">
+                        <i class="ri-eye-line"></i> Ver
+                    </button>
+                </td>
+            </tr>
+        `;
             });
 
+            // Helper para icono de orden
+            const sortIcon = (col) => {
+                if (cxpSortState.column !== col) {
+                    return '<i class="ri-arrow-up-down-line text-muted" style="font-size:11px;"></i>';
+                }
+                return cxpSortState.direction === 'asc'
+                    ? '<i class="ri-arrow-up-line text-primary"></i>'
+                    : '<i class="ri-arrow-down-line text-primary"></i>';
+            };
+
             const html = `
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap">
-                            <span>
-                                <i class="ri-information-line"></i>
-                                <strong>Resumen:</strong>
-                                Total Facturado: <strong class="text-primary">$${formatNumber(totalMonto)}</strong> |
-                                Total Abonado: <strong class="text-success">$${formatNumber(totalAbonado)}</strong> |
-                                Saldo Pendiente: <strong class="text-danger">$${formatNumber(totalDeuda)}</strong>
-                            </span>
-                            <span class="mt-2 mt-sm-0">
-                                <small class="text-muted">
-                                    <i class="ri-file-list-line"></i> ${data.length} documento(s)
-                                </small>
-                            </span>
-                        </div>
-                    </div>
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap">
+                    <span>
+                        <i class="ri-information-line"></i>
+                        <strong>Resumen:</strong>
+                        Total Facturado: <strong class="text-primary">$${formatNumber(totalMonto)}</strong> |
+                        Total Abonado: <strong class="text-success">$${formatNumber(totalAbonado)}</strong> |
+                        Saldo Pendiente: <strong class="text-danger">$${formatNumber(totalDeuda)}</strong>
+                    </span>
+                    <span class="mt-2 mt-sm-0">
+                        <small class="text-muted">
+                            <i class="ri-file-list-line"></i> ${data.length} documento(s)
+                        </small>
+                    </span>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th width="10%">Fecha Emisión</th>
-                                <th width="12%">Fecha Vence</th>
-                                <th width="35%">Concepto / Documento</th>
-                                <th width="12%" class="text-end">Monto</th>
-                                <th width="12%" class="text-end">Abonado</th>
-                                <th width="12%" class="text-end">Saldo</th>
-                                <th width="7%">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows}
-                        </tbody>
-                        <tfoot class="table-secondary">
-                            <tr class="fw-bold">
-                                <td colspan="3" class="text-end">TOTALES:</td>
-                                <td class="text-end">$${formatNumber(totalMonto)}</td>
-                                <td class="text-end">$${formatNumber(totalAbonado)}</td>
-                                <td class="text-end text-danger">$${formatNumber(totalDeuda)}</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            `;
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th width="10%" class="sortable-cxp" data-col="fecha2" style="cursor:pointer;">Fecha Emisión ${sortIcon('fecha2')}</th>
+                        <th width="12%" class="sortable-cxp" data-col="fechav" style="cursor:pointer;">Fecha Vence ${sortIcon('fechav')}</th>
+                        <th width="35%" class="sortable-cxp" data-col="concepto" style="cursor:pointer;">Concepto / Documento ${sortIcon('concepto')}</th>
+                        <th width="12%" class="text-end sortable-cxp" data-col="monto" style="cursor:pointer;">Monto ${sortIcon('monto')}</th>
+                        <th width="12%" class="text-end sortable-cxp" data-col="abonado" style="cursor:pointer;">Abonado ${sortIcon('abonado')}</th>
+                        <th width="12%" class="text-end sortable-cxp" data-col="deuda" style="cursor:pointer;">Saldo ${sortIcon('deuda')}</th>
+                        <th width="7%">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+                <tfoot class="table-secondary">
+                    <tr class="fw-bold">
+                        <td colspan="3" class="text-end">TOTALES:</td>
+                        <td class="text-end">$${formatNumber(totalMonto)}</td>
+                        <td class="text-end">$${formatNumber(totalAbonado)}</td>
+                        <td class="text-end text-danger">$${formatNumber(totalDeuda)}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    `;
 
             $('#cxp-content').html(html);
 
-            // Eventos para ver detalle
+            // Evento: click en encabezado para ordenar
+            $(document).off('click', '.sortable-cxp').on('click', '.sortable-cxp', function() {
+                const col = $(this).data('col');
+                if (cxpSortState.column === col) {
+                    cxpSortState.direction = cxpSortState.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    cxpSortState.column = col;
+                    cxpSortState.direction = 'asc';
+                }
+                renderDetalleCuentas(cxpDataCache, cxpTotalsCache.monto, cxpTotalsCache.abonado, cxpTotalsCache.deuda);
+            });
+
+            // Eventos para ver detalle (igual que antes)
             $(document).off('click', '.ver-detalle-cxp').on('click', '.ver-detalle-cxp', function() {
                 const id       = $(this).data('id');
                 const numerod  = $(this).data('numerod');
@@ -1557,57 +1646,50 @@
                 const fecha2   = $(this).data('fecha2');
                 const fechav   = $(this).data('fechav');
 
-                // Calcular porcentaje pagado
                 const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
                 const porcentajeDeuda  = monto > 0 ? (deuda / monto * 100) : 0;
 
                 Swal.fire({
                     title: 'Detalle de Cuenta por Pagar',
                     html: `
-                        <div class="text-start">
-                            <div class="mb-3">
-                                <p><strong><i class="ri-file-copy-line"></i> Documento:</strong> ${numerod || 'N/A'}</p>
-                                <p><strong><i class="ri-calendar-line"></i> Fecha Emisión:</strong> ${fecha2 || 'N/A'}</p>
-                                <p><strong><i class="ri-calendar-event-line"></i> Fecha Vencimiento:</strong> ${fechav || 'N/A'}</p>
-                                <p><strong><i class="ri-survey-line"></i> Concepto:</strong> ${concepto}</p>
-                            </div>
-                            <hr>
-                            <div class="row">
-                                <div class="col-6">
-                                    <div class="text-center p-2 border rounded">
-                                        <small class="text-muted d-block">Monto</small>
-                                        <h5 class="text-primary mb-0">$${formatNumber(monto)}</h5>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="text-center p-2 border rounded">
-                                        <small class="text-muted d-block">Abonado</small>
-                                        <h5 class="text-success mb-0">$${formatNumber(abonado)}</h5>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <div class="text-center p-2 border rounded bg-light">
-                                    <small class="text-muted d-block">Saldo Pendiente</small>
-                                    <h4 class="text-danger mb-0">$${formatNumber(deuda)}</h4>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar bg-success" role="progressbar"
-                                         style="width: ${porcentajePagado}%"
-                                         aria-valuenow="${porcentajePagado}" aria-valuemin="0" aria-valuemax="100">
-                                        ${porcentajePagado.toFixed(1)}%
-                                    </div>
-                                    <div class="progress-bar bg-danger" role="progressbar"
-                                         style="width: ${porcentajeDeuda}%"
-                                         aria-valuenow="${porcentajeDeuda}" aria-valuemin="0" aria-valuemax="100">
-                                        ${porcentajeDeuda.toFixed(1)}%
-                                    </div>
-                                </div>
+                <div class="text-start">
+                    <div class="mb-3">
+                        <p><strong><i class="ri-file-copy-line"></i> Documento:</strong> ${numerod || 'N/A'}</p>
+                        <p><strong><i class="ri-calendar-line"></i> Fecha Emisión:</strong> ${fecha2 || 'N/A'}</p>
+                        <p><strong><i class="ri-calendar-event-line"></i> Fecha Vencimiento:</strong> ${fechav || 'N/A'}</p>
+                        <p><strong><i class="ri-survey-line"></i> Concepto:</strong> ${concepto}</p>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block">Monto</small>
+                                <h5 class="text-primary mb-0">$${formatNumber(monto)}</h5>
                             </div>
                         </div>
-                    `,
+                        <div class="col-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block">Abonado</small>
+                                <h5 class="text-success mb-0">$${formatNumber(abonado)}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="text-center p-2 border rounded bg-light">
+                            <small class="text-muted d-block">Saldo Pendiente</small>
+                            <h4 class="text-danger mb-0">$${formatNumber(deuda)}</h4>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 style="width: ${porcentajePagado}%">${porcentajePagado.toFixed(1)}%</div>
+                            <div class="progress-bar bg-danger" role="progressbar"
+                                 style="width: ${porcentajeDeuda}%">${porcentajeDeuda.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                </div>
+            `,
                     icon: 'info',
                     confirmButtonText: 'Cerrar',
                     width: '500px'
