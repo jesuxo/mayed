@@ -1040,6 +1040,12 @@
     <script src="{{ URL::asset('build/js/app.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+
+        // Estado de ordenamiento (global para el módulo)
+        let cxpSortState = { column: null, direction: 'asc' };
+        let cxpDataCache = null;
+        let cxpTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
+
         // ============================================
         // CONFIGURACIÓN INICIAL
         // ============================================
@@ -1497,12 +1503,6 @@
             const y = parseInt(partes[2], 10);
             return new Date(y, m, d).getTime();
         }
-
-
-        // Estado de ordenamiento (global para el módulo)
-        let cxpSortState = { column: null, direction: 'asc' };
-        let cxpDataCache = null;
-        let cxpTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
 
         function renderDetalleCuentas(data, totalMonto, totalAbonado, totalDeuda) {
             if (!data || data.length === 0) {
