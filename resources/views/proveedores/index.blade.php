@@ -783,7 +783,7 @@
         let rgSortState  = { column: null, direction: 'asc' };
         let rgDataCache  = null;
         let rgTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
-
+        let rgFiltroTexto = '';
         // ============================================
         // CONFIGURACIÓN AJAX
         // ============================================
@@ -880,7 +880,31 @@
             }
 
             $searchInput.on('focus', cargarTodosProveedores);
-            $searchInput.on('keyup', cargarTodosProveedores);
+
+            let busquedaRgTimer;
+            $searchInput.on('keyup', function() {
+                cargarTodosProveedores();
+
+                // Filtro en tiempo real sobre la tabla de Cuentas por Pagar (Resumen General)
+                clearTimeout(busquedaRgTimer);
+                busquedaRgTimer = setTimeout(function() {
+                    rgFiltroTexto = $searchInput.val().trim();
+                    if (rgDataCache && rgDataCache.length > 0) {
+                        renderResumenGeneral(rgDataCache, rgTotalsCache);
+                    }
+                }, 250); // debounce
+            });
+
+            // También escuchar input (por si pegan o borran)
+            $searchInput.on('input', function() {
+                clearTimeout(busquedaRgTimer);
+                busquedaRgTimer = setTimeout(function() {
+                    rgFiltroTexto = $searchInput.val().trim();
+                    if (rgDataCache && rgDataCache.length > 0) {
+                        renderResumenGeneral(rgDataCache, rgTotalsCache);
+                    }
+                }, 250);
+            });
 
             $(document).on('click', function(e) {
                 if (!$(e.target).closest('.search-box').length) {
@@ -1314,6 +1338,9 @@
                     $loading.addClass('d-none');
                     $content.removeClass('d-none');
                     if (response.success) {
+                        // Sincronizar filtro texto con el input por si cambió
+                        rgFiltroTexto = ($('#busqueda').val() || '').trim();
+
                         const data = (response.data || []).map(function(item, i) {
                             return Object.assign({}, item, { _idx: i + 1 });
                         });
@@ -1340,11 +1367,30 @@
         }
 
         function aplicarOrdenamientoRg(data) {
-            if (!rgSortState.column) return data;
+            // 1) Aplicar filtro de texto
+            let filtrados = data;
+            if (rgFiltroTexto && rgFiltroTexto.length > 0) {
+                const tokens = rgFiltroTexto.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+                if (tokens.length > 0) {
+                    filtrados = data.filter(function(item) {
+                        const texto = (
+                            (item.empresa || '') + ' ' +
+                            (item.codprov || '') + ' ' +
+                            (item.empresa || '') + ' ' +      // por si buscan por nombre
+                            (item.id3 || '')                   // RIF si lo tuvieras
+                        ).toLowerCase();
+                        return tokens.every(t => texto.includes(t));
+                    });
+                }
+            }
+
+            // 2) Aplicar ordenamiento
+            if (!rgSortState.column) return filtrados;
+
             const col = rgSortState.column;
             const dir = rgSortState.direction === 'asc' ? 1 : -1;
 
-            return [...data].sort(function(a, b) {
+            return [...filtrados].sort(function(a, b) {
                 let va, vb;
                 if (col === 'idx') {
                     va = a._idx || 0; vb = b._idx || 0;
@@ -1386,9 +1432,35 @@
 
             rgDataCache = data;
             rgTotalsCache = { monto: totales.monto, abonado: totales.abonado, deuda: totales.deuda };
-            $('#totalProveedoresCxp').text(data.length);
 
             const sortedData = aplicarOrdenamientoRg(data);
+
+            if (sortedData.length === 0) {
+                $('#totalProveedoresCxp').text('0');
+                $('#resumen-general-content').html(`
+                    <div class="alert alert-warning py-2 mb-2 d-flex justify-content-between align-items-center">
+                        <span><i class="ri-filter-3-line"></i> Filtrando por: <strong>${escapeHtml(rgFiltroTexto)}</strong></span>
+                        <button type="button" id="btnLimpiarFiltroRg" class="btn btn-sm btn-outline-dark">
+                            <i class="ri-close-line"></i> Quitar filtro
+                        </button>
+                    </div>
+                    <div class="text-center py-4">
+                        <i class="ri-search-eye-line fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No hay proveedores que coincidan con "<strong>${escapeHtml(rgFiltroTexto)}</strong>"</p>
+                    </div>
+                `);
+                return;
+            }
+
+            // Recalcular totales sobre las filas visibles (filtradas)
+            let sumMonto = 0, sumAbonado = 0, sumDeuda = 0;
+            sortedData.forEach(function(it) {
+                sumMonto    += parseFloat(it.monto) || 0;
+                sumAbonado  += parseFloat(it.abonado) || 0;
+                sumDeuda    += parseFloat(it.deuda) || 0;
+            });
+
+            $('#totalProveedoresCxp').text(sortedData.length);
 
             let rows = '';
             sortedData.forEach(function(item) {
@@ -1446,12 +1518,24 @@
                 `;
             });
 
-            const totalDeuda = parseFloat(totales.deuda) || 0;
-            const totalMonto = parseFloat(totales.monto) || 0;
-            const totalAbonado = parseFloat(totales.abonado) || 0;
+            const totalDeuda    = sumDeuda;
+            const totalMonto    = sumMonto;
+            const totalAbonado  = sumAbonado;
             const porcentajeGeneral = totalMonto > 0 ? (totalAbonado / totalMonto * 100) : 0;
 
+            // Aviso de filtro activo
+            const filtroActivo = rgFiltroTexto && rgFiltroTexto.length > 0;
+            const avisoFiltro = filtroActivo
+                ? `<div class="alert alert-warning py-2 mb-2 d-flex justify-content-between align-items-center">
+                       <span><i class="ri-filter-3-line"></i> Filtrando por: <strong>${escapeHtml(rgFiltroTexto)}</strong></span>
+                       <button type="button" id="btnLimpiarFiltroRg" class="btn btn-sm btn-outline-dark">
+                           <i class="ri-close-line"></i> Quitar filtro
+                       </button>
+                   </div>`
+                : '';
+
             $('#resumen-general-content').html(`
+                ${avisoFiltro}
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <div class="alert alert-info">
@@ -1546,6 +1630,14 @@
                         }
                         $('#proveedorForm').submit();
                     }
+                });
+            // Quitar filtro del buscador
+            $(document)
+                .off('click.rgLimpiar', '#btnLimpiarFiltroRg')
+                .on('click.rgLimpiar', '#btnLimpiarFiltroRg', function() {
+                    rgFiltroTexto = '';
+                    $('#busqueda').val('');
+                    renderResumenGeneral(rgDataCache, rgTotalsCache);
                 });
         }
 
