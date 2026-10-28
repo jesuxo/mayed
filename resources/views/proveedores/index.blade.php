@@ -1415,6 +1415,87 @@
             });
         }
 
+        function renderResumenCuentas(data) {
+            if (!data || !data.codprov) {
+                $('#cxp-content').html(`
+            <div class="text-center py-4">
+                <i class="ri-inbox-line fs-1 text-muted"></i>
+                <p class="text-muted mt-2">No hay cuentas por pagar para este proveedor</p>
+            </div>
+        `);
+                return;
+            }
+
+            const deuda = parseFloat(data.deuda) || 0;
+            const monto = parseFloat(data.monto) || 0;
+            const abonado = parseFloat(data.abonado) || 0;
+            const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
+            const porcentajeDeuda = monto > 0 ? (deuda / monto * 100) : 0;
+
+            const html = `
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card shadow-sm border-0 cxp-card">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h5 class="mb-0">Resumen de Cuentas por Pagar</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <h4>${escapeHtml(data.empresa) || escapeHtml(data.codprov)}</h4>
+                            <small class="text-muted">Código: ${escapeHtml(data.codprov)}</small>
+                        </div>
+
+                        <div class="row text-center mb-4">
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <small class="text-muted d-block">Total Facturado</small>
+                                    <h4 class="text-primary mb-0">$${formatNumber(monto)}</h4>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border-end">
+                                    <small class="text-muted d-block">Total Abonado</small>
+                                    <h4 class="text-success mb-0">$${formatNumber(abonado)}</h4>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Saldo Pendiente</small>
+                                <h4 class="${deuda > 0 ? 'text-danger' : 'text-success'} mb-0">$${formatNumber(deuda)}</h4>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>Pagado: ${porcentajePagado.toFixed(1)}%</span>
+                                <span>Pendiente: ${porcentajeDeuda.toFixed(1)}%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-success progress-bar-custom" role="progressbar"
+                                     style="width: ${porcentajePagado}%"
+                                     aria-valuenow="${porcentajePagado}" aria-valuemin="0" aria-valuemax="100">
+                                    $${formatNumber(abonado)}
+                                </div>
+                                <div class="progress-bar bg-danger progress-bar-custom" role="progressbar"
+                                     style="width: ${porcentajeDeuda}%"
+                                     aria-valuenow="${porcentajeDeuda}" aria-valuemin="0" aria-valuemax="100">
+                                    $${formatNumber(deuda)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="ri-information-line"></i>
+                            <small>Este resumen incluye todas las cuentas por pagar activas del proveedor.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            $('#cxp-content').html(html);
+        }
+
         /**
          * Renderizar resumen de cuentas por pagar
          */
