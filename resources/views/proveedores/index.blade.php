@@ -1045,6 +1045,58 @@
         let cxpSortState = { column: null, direction: 'asc' };
         let cxpDataCache = null;
         let cxpTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
+        // Estado de ordenamiento del Resumen General
+        let rgSortState  = { column: null, direction: 'asc' };
+        let rgDataCache  = null;
+        let rgTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
+
+
+        function sortIconRg(col) {
+            if (rgSortState.column !== col) {
+                return '<i class="ri-arrow-up-down-line text-muted" style="font-size:11px;"></i>';
+            }
+            return rgSortState.direction === 'asc'
+                ? '<i class="ri-arrow-up-line text-primary"></i>'
+                : '<i class="ri-arrow-down-line text-primary"></i>';
+        }
+
+        function aplicarOrdenamientoRg(data) {
+            if (!rgSortState.column) return data;
+
+            const col = rgSortState.column;
+            const dir = rgSortState.direction === 'asc' ? 1 : -1;
+
+            return [...data].sort(function(a, b) {
+                let va, vb;
+
+                // Numéricas
+                if (['monto', 'abonado', 'deuda'].includes(col)) {
+                    va = parseFloat(a[col]) || 0;
+                    vb = parseFloat(b[col]) || 0;
+                    return (va - vb) * dir;
+                }
+
+                // Progreso (% pagado)
+                if (col === 'progreso') {
+                    const ma = parseFloat(a.monto) || 0;
+                    const mb = parseFloat(b.monto) || 0;
+                    va = ma > 0 ? (parseFloat(a.abonado) || 0) / ma : 0;
+                    vb = mb > 0 ? (parseFloat(b.abonado) || 0) / mb : 0;
+                    return (va - vb) * dir;
+                }
+
+                // Proveedor (empresa, luego codprov como fallback)
+                if (col === 'empresa') {
+                    va = (a.empresa || a.codprov || '').toString().toLowerCase();
+                    vb = (b.empresa || b.codprov || '').toString().toLowerCase();
+                    if (va < vb) return -1 * dir;
+                    if (va > vb) return 1 * dir;
+                    return 0;
+                }
+
+                return 0;
+            });
+        }
 
         // ============================================
         // CONFIGURACIÓN INICIAL
@@ -1366,87 +1418,7 @@
         /**
          * Renderizar resumen de cuentas por pagar
          */
-        function renderResumenCuentas(data) {
-            if (!data || !data.codprov) {
-                $('#cxp-content').html(`
-                    <div class="text-center py-4">
-                        <i class="ri-inbox-line fs-1 text-muted"></i>
-                        <p class="text-muted mt-2">No hay cuentas por pagar para este proveedor</p>
-                    </div>
-                `);
-                return;
-            }
 
-            const deuda = parseFloat(data.deuda) || 0;
-            const monto = parseFloat(data.monto) || 0;
-            const abonado = parseFloat(data.abonado) || 0;
-            const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
-            const porcentajeDeuda = monto > 0 ? (deuda / monto * 100) : 0;
-
-            const html = `
-                <div class="row">
-                    <div class="col-md-8 mx-auto">
-                        <div class="card shadow-sm border-0 cxp-card">
-                            <div class="card-header bg-primary text-white text-center">
-                                <h5 class="mb-0">Resumen de Cuentas por Pagar</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="text-center mb-4">
-                                    <h4>${escapeHtml(data.empresa) || escapeHtml(data.codprov)}</h4>
-                                    <small class="text-muted">Código: ${escapeHtml(data.codprov)}</small>
-                                </div>
-
-                                <div class="row text-center mb-4">
-                                    <div class="col-4">
-                                        <div class="border-end">
-                                            <small class="text-muted d-block">Total Facturado</small>
-                                            <h4 class="text-primary mb-0">$${formatNumber(monto)}</h4>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <div class="border-end">
-                                            <small class="text-muted d-block">Total Abonado</small>
-                                            <h4 class="text-success mb-0">$${formatNumber(abonado)}</h4>
-                                        </div>
-                                    </div>
-                                    <div class="col-4">
-                                        <small class="text-muted d-block">Saldo Pendiente</small>
-                                        <h4 class="${deuda > 0 ? 'text-danger' : 'text-success'} mb-0">$${formatNumber(deuda)}</h4>
-                                    </div>
-                                </div>
-
-                                <!-- Barra de progreso -->
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <span>Pagado: ${porcentajePagado.toFixed(1)}%</span>
-                                        <span>Pendiente: ${porcentajeDeuda.toFixed(1)}%</span>
-                                    </div>
-                                    <div class="progress" style="height: 25px;">
-                                        <div class="progress-bar bg-success progress-bar-custom" role="progressbar"
-                                             style="width: ${porcentajePagado}%"
-                                             aria-valuenow="${porcentajePagado}" aria-valuemin="0" aria-valuemax="100">
-                                            $${formatNumber(abonado)}
-                                        </div>
-                                        <div class="progress-bar bg-danger progress-bar-custom" role="progressbar"
-                                             style="width: ${porcentajeDeuda}%"
-                                             aria-valuenow="${porcentajeDeuda}" aria-valuemin="0" aria-valuemax="100">
-                                            $${formatNumber(deuda)}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="alert alert-info mt-3 mb-0">
-                                    <i class="ri-information-line"></i>
-                                    <small>Este resumen incluye todas las cuentas por pagar activas del proveedor.</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            $('#cxp-content').html(html);
-        }
 
         function aplicarOrdenamientoCxp(data) {
             if (!cxpSortState.column) return data;
@@ -1772,13 +1744,21 @@
                     $content.removeClass('d-none');
 
                     if (response.success) {
-                        renderResumenGeneral(response.data, response.totales);
+                        // Asignar índice original para la columna "#"
+                        const data = (response.data || []).map(function(item, i) {
+                            return Object.assign({}, item, { _idx: i + 1 });
+                        });
+
+                        // Reset de orden al recargar
+                        rgSortState = { column: null, direction: 'asc' };
+
+                        renderResumenGeneral(data, response.totales);
                     } else {
                         $content.html(`
-                    <div class="alert alert-danger">
-                        <i class="ri-error-warning-line"></i> Error al cargar los datos
-                    </div>
-                `);
+                            <div class="alert alert-danger">
+                                <i class="ri-error-warning-line"></i> Error al cargar los datos
+                            </div>
+                        `);
                     }
                 },
                 error: function(xhr) {
@@ -1793,9 +1773,6 @@
             });
         }
 
-        /**
-         * Renderizar resumen general de cuentas por pagar
-         */
         function renderResumenGeneral(data, totales) {
             if (!data || data.length === 0) {
                 $('#resumen-general-content').html(`
@@ -1808,18 +1785,24 @@
                 return;
             }
 
+            // Guardar caché para reordenar sin re-consultar
+            rgDataCache   = data;
+            rgTotalsCache = { monto: totales.monto, abonado: totales.abonado, deuda: totales.deuda };
+
             $('#totalProveedoresCxp').text(data.length);
 
+            const sortedData = aplicarOrdenamientoRg(data);
+
             let rows = '';
-            data.forEach(function(item, index) {
+            sortedData.forEach(function(item) {
                 const deuda = parseFloat(item.deuda) || 0;
                 const monto = parseFloat(item.monto) || 0;
                 const abonado = parseFloat(item.abonado) || 0;
                 const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
-//onclick="seleccionarProveedorCxp('${item.codprov}', '${escapeHtml(item.empresa)}')"
+
                 rows += `
-            <tr style="cursor: pointer;" >
-                <td class="text-center">${index + 1}</td>
+            <tr style="cursor: pointer;">
+                <td class="text-center">${item._idx != null ? item._idx : ''}</td>
                 <td>
                     <strong>${escapeHtml(item.empresa)}</strong>
                     <br><small class="text-muted">Código: ${escapeHtml(item.codprov)}</small>
@@ -1891,18 +1874,16 @@
             <table class="table table-sm table-hover table-bordered">
                 <thead class="table-light">
                     <tr>
-                        <th width="5%">#</th>
-                        <th width="35%">Proveedor</th>
-                        <th width="15%" class="text-end">Total Facturado</th>
-                        <th width="15%" class="text-end">Total Abonado</th>
-                        <th width="15%" class="text-end">Saldo Pendiente</th>
-                        <th width="10%" class="text-center">Progreso</th>
+                        <th width="5%" class="sortable-cxp" data-col="idx"># ${sortIconRg('idx')}</th>
+                        <th width="35%" class="sortable-cxp" data-col="empresa">Proveedor ${sortIconRg('empresa')}</th>
+                        <th width="15%" class="text-end sortable-cxp" data-col="monto">Total Facturado ${sortIconRg('monto')}</th>
+                        <th width="15%" class="text-end sortable-cxp" data-col="abonado">Total Abonado ${sortIconRg('abonado')}</th>
+                        <th width="15%" class="text-end sortable-cxp" data-col="deuda">Saldo Pendiente ${sortIconRg('deuda')}</th>
+                        <th width="10%" class="text-center sortable-cxp" data-col="progreso">Progreso ${sortIconRg('progreso')}</th>
                         <th width="5%">Acción</th>
                     </tr>
                 </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
+                <tbody>${rows}</tbody>
                 <tfoot class="table-secondary">
                     <tr class="fw-bold">
                         <td colspan="2" class="text-end">TOTALES:</td>
@@ -1918,13 +1899,29 @@
 
             $('#resumen-general-content').html(html);
 
-            // Evento para ver detalle del proveedor
-            $(document).off('click', '.ver-proveedor').on('click', '.ver-proveedor', function(e) {
-                e.stopPropagation();
-                const codprov = $(this).data('codprov');
-                const descrip = $(this).data('descrip');
-                seleccionarProveedorCxp(codprov, descrip);
-            });
+            // Click en encabezado → reordenar
+            $(document)
+                .off('click.rgSort', '.sortable-cxp')
+                .on('click.rgSort', '.sortable-cxp', function() {
+                    const col = $(this).data('col');
+                    if (rgSortState.column === col) {
+                        rgSortState.direction = rgSortState.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        rgSortState.column = col;
+                        rgSortState.direction = 'asc';
+                    }
+                    renderResumenGeneral(rgDataCache, rgTotalsCache);
+                });
+
+            // Ver proveedor
+            $(document)
+                .off('click.rgDet', '.ver-proveedor')
+                .on('click.rgDet', '.ver-proveedor', function(e) {
+                    e.stopPropagation();
+                    const codprov = $(this).data('codprov');
+                    const descrip = $(this).data('descrip');
+                    seleccionarProveedorCxp(codprov, descrip);
+                });
         }
 
         /**
