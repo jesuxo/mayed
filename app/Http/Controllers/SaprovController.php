@@ -1412,6 +1412,346 @@ class SaprovController extends Controller
     }
 
     /**
+     * Análisis gerencial GLOBAL de Cuentas por Pagar (todos los proveedores)
+     * Devuelve: ranking de proveedores, priorización de facturas, KPIs, alertas, proyección.
+     */
+    public function analisisGerencialGlobalCxp(Request $request)
+    {
+        $soloVencidos = $request->boolean('solovencidos', false);
+        $fechaCorte   = $request->filled('fechavence')
+            ? Carbon::createFromFormat('d/m/Y', $request->fechavence)->format('Y-m-d')
+            : null;
+
+        $comercial   = session('comercialid') ?: 1;
+        $sucursalIds = Sasucursal::where('fk_comercial', $comercial)->pluck('id')->toArray();
+        $sucursalStr = implode(',', $sucursalIds);
+        $hoy         = Carbon::now()->startOfDay();
+
+        // ==========================================
+        // 1. TODAS LAS FACTURAS PENDIENTES (globales)
+        // ==========================================
+        $qFacturas = Cwcxcprv::where('signo', 1)
+            ->whereRaw('(monto - abonado) > 0')
+            ->select(
+                'id', 'codprov', 'numerod', 'concepto', 'monto', 'abonado',
+                DB::raw('(monto - abonado) as deuda'),
+                'fecha', 'fechav'
+            );
+
+        if ($soloVencidos) {
+            $qFacturas->whereDate('fechav', '<', $hoy);
+        }
+        if ($fechaCorte) {
+            $qFacturas->whereDate('fechav', '>=', $fechaCorte);
+        }
+
+        $facturas = $qFacturas->get();
+
+        if ($facturas->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data'    => $this->estructuraGlobalVacia(),
+            ]);
+        }
+
+        $codprovs = $facturas->pluck('codprov')->unique()->values()->toArray();
+
+        // ==========================================
+        // 2. DATOS DE CONTEXTO DE LOS PROVEEDORES
+        // ==========================================
+        $proveedoresInfo = Saprov::whereIn('codprov', $codprovs)
+            ->select('codprov', 'descrip', 'id3')
+            ->get()
+            ->keyBy('codprov');
+
+        // Historial de compras últimos 12 meses (criticidad)
+        $hace12m = now()->subMonths(12)->format('Y-m-d');
+        $historiales = Saitemcom::whereIn('codprov', $codprovs)
+            ->whereRaw("fk_sucursal in ($sucursalStr)")
+            ->whereIn('tipocom', ['H', 'I'])
+            ->where('fechae', '>=', $hace12m)
+            ->select(
+                'codprov',
+                DB::raw('COUNT(DISTINCT numerod) as total_facturas'),
+                DB::raw('SUM(cantidad * preciod * signo) as monto_total'),
+                DB::raw('MAX(fechae) as ultima_compra')
+            )
+            ->groupBy('codprov')
+            ->get()
+            ->keyBy('codprov');
+
+        // ==========================================
+        // 3. AGREGACIÓN POR PROVEEDOR
+        // ==========================================
+        $porProveedor = [];
+        $totalDeudaGlobal = $facturas->sum('deuda');
+        $totalFacturasGlobal = $facturas->count();
+
+        foreach ($facturas->groupBy('codprov') as $codprov => $facts) {
+            $info = $proveedoresInfo->get($codprov);
+            $hist = $historiales->get($codprov);
+
+            $deudaProv       = $facts->sum('deuda');
+            $montoProv       = $facts->sum('monto');
+            $abonadoProv     = $facts->sum('abonado');
+            $numFacturas     = $facts->count();
+
+            // Facturas vencidas
+            $facturasProv    = $facts->map(function ($f) use ($hoy) {
+                $fechaVence   = Carbon::parse($f->fechav)->startOfDay();
+                $diasVencidos = $fechaVence->lt($hoy) ? $fechaVence->diffInDays($hoy) : 0;
+                $diasPorVencer = $fechaVence->gte($hoy) ? $hoy->diffInDays($fechaVence) : 0;
+                return [
+                    'id'              => $f->id,
+                    'numerod'         => $f->numerod,
+                    'concepto'        => $f->concepto,
+                    'monto'           => (float) $f->monto,
+                    'abonado'         => (float) $f->abonado,
+                    'deuda'           => (float) $f->deuda,
+                    'fecha_fmt'       => Carbon::parse($f->fecha)->format('d/m/Y'),
+                    'fechav_fmt'      => $fechaVence->format('d/m/Y'),
+                    'fechav'          => $f->fechav,
+                    'dias_vencidos'   => $diasVencidos,
+                    'dias_por_vencer' => $diasPorVencer,
+                ];
+            })->sortByDesc('dias_vencidos')->values();
+
+            $vencidoProv     = $facturasProv->where('dias_vencidos', '>', 0)->sum('deuda');
+            $facturasVencidas = $facturasProv->where('dias_vencidos', '>', 0)->count();
+            $diasVencidoMax  = $facturasProv->max('dias_vencidos') ?? 0;
+            $edadPromedio    = $facturasProv->where('dias_vencidos', '>', 0)->avg('dias_vencidos') ?? 0;
+
+            // Porcentaje que representa este proveedor del total global
+            $porcentajeGlobal = $totalDeudaGlobal > 0
+                ? round(($deudaProv / $totalDeudaGlobal) * 100, 1)
+                : 0;
+
+            $facturas12m     = (int)   ($hist->total_facturas ?? 0);
+            $monto12m        = (float) ($hist->monto_total ?? 0);
+            $ultimaCompra    = $hist->ultima_compra ?? null;
+            $diasUltimaCompra = $ultimaCompra
+                ? Carbon::parse($ultimaCompra)->diffInDays($hoy)
+                : null;
+
+            // ==========================================
+            // SCORE GERENCIAL DEL PROVEEDOR (0-100)
+            // ==========================================
+            // a) Antigüedad máxima vencida       → 35 pts
+            // b) % de deuda vencida sobre su total → 25 pts
+            // c) Concentración global (peso)     → 20 pts
+            // d) Criticidad (compras 12m)        → 10 pts
+            // e) Penalización por inactividad    → 10 pts
+            $score = 0;
+            $score += min(35, $diasVencidoMax);                                       // a
+            $score += $deudaProv > 0
+                ? min(25, ($vencidoProv / $deudaProv) * 25)
+                : 0;                                                                  // b
+            $score += min(20, $porcentajeGlobal * 2);                                 // c
+            if ($facturas12m >= 10)     $score += 10;
+            elseif ($facturas12m >= 3)  $score += 5;
+            if ($diasUltimaCompra !== null && $diasUltimaCompra > 90) $score += 10;    // e
+
+            $score = round(min(100, $score), 1);
+
+            // Categoría
+            if ($diasVencidoMax >= 30 || $score >= 75)      $categoria = 'critica';
+            elseif ($diasVencidoMax > 0 || $score >= 50)    $categoria = 'alta';
+            elseif ($score >= 30)                            $categoria = 'media';
+            else                                             $categoria = 'baja';
+
+            $porProveedor[] = [
+                'codprov'          => $codprov,
+                'empresa'          => $info->descrip ?? $codprov,
+                'id3'              => $info->id3 ?? null,
+                'deuda'            => round($deudaProv, 2),
+                'monto'            => round($montoProv, 2),
+                'abonado'          => round($abonadoProv, 2),
+                'num_facturas'     => $numFacturas,
+                'num_vencidas'     => $facturasVencidas,
+                'deuda_vencida'    => round($vencidoProv, 2),
+                'porcentaje_global'=> $porcentajeGlobal,
+                'porcentaje_vencido'=> $deudaProv > 0 ? round(($vencidoProv / $deudaProv) * 100, 1) : 0,
+                'dias_vencido_max' => $diasVencidoMax,
+                'edad_promedio'    => round($edadPromedio, 0),
+                'facturas_12m'     => $facturas12m,
+                'monto_12m'        => round($monto12m, 2),
+                'dias_ultima_compra' => $diasUltimaCompra,
+                'score'            => $score,
+                'categoria'        => $categoria,
+                'facturas'         => $facturasProv,
+            ];
+        }
+
+        // Ordenar proveedores por score descendente
+        usort($porProveedor, fn($a, $b) => $b['score'] <=> $a['score']);
+
+        // Ranking
+        foreach ($porProveedor as $i => &$p) {
+            $p['ranking'] = $i + 1;
+        }
+        unset($p);
+
+        // ==========================================
+        // 4. KPIs GLOBALES
+        // ==========================================
+        $totalVencido     = $facturas->filter(fn($f) => Carbon::parse($f->fechav)->lt($hoy))->sum('deuda');
+        $totalPorVencer7d = $facturas->filter(function ($f) use ($hoy) {
+            $v = Carbon::parse($f->fechav)->startOfDay();
+            return $v->gte($hoy) && $hoy->diffInDays($v) <= 7;
+        })->sum('deuda');
+
+        $kpis = [
+            'total_deuda'            => round($totalDeudaGlobal, 2),
+            'total_vencido'          => round($totalVencido, 2),
+            'total_por_vencer_7d'    => round($totalPorVencer7d, 2),
+            'total_proveedores'      => count($porProveedor),
+            'total_facturas'         => $totalFacturasGlobal,
+            'proveedores_criticos'   => collect($porProveedor)->where('categoria', 'critica')->count(),
+            'porcentaje_vencido'     => $totalDeudaGlobal > 0
+                ? round(($totalVencido / $totalDeudaGlobal) * 100, 1) : 0,
+            'proveedor_mas_critico'  => $porProveedor[0]['empresa'] ?? null,
+            'deuda_top5'             => round(collect($porProveedor)->take(5)->sum('deuda'), 2),
+            'porcentaje_top5'        => $totalDeudaGlobal > 0
+                ? round((collect($porProveedor)->take(5)->sum('deuda') / $totalDeudaGlobal) * 100, 1) : 0,
+        ];
+
+        // ==========================================
+        // 5. ALERTAS GLOBALES
+        // ==========================================
+        $alertas = [];
+
+        if ($totalVencido > 0) {
+            $alertas[] = [
+                'tipo'    => 'danger',
+                'icono'   => 'ri-alarm-warning-line',
+                'titulo'  => 'Deuda vencida global',
+                'mensaje' => '$' . number_format($totalVencido, 2) . ' vencidos con '
+                    . collect($porProveedor)->sum('num_vencidas') . ' factura(s) en '
+                    . collect($porProveedor)->where('num_vencidas', '>', 0)->count() . ' proveedor(es).',
+            ];
+        }
+
+        if ($kpis['porcentaje_vencido'] >= 40) {
+            $alertas[] = [
+                'tipo'    => 'danger',
+                'icono'   => 'ri-error-warning-line',
+                'titulo'  => 'Concentración crítica',
+                'mensaje' => 'El ' . $kpis['porcentaje_vencido'] . '% del pasivo total está vencido. Priorizar cobranza/pagos urgente.',
+            ];
+        }
+
+        if ($kpis['porcentaje_top5'] >= 60) {
+            $alertas[] = [
+                'tipo'    => 'warning',
+                'icono'   => 'ri-pie-chart-line',
+                'titulo'  => 'Riesgo de concentración',
+                'mensaje' => 'Los 5 proveedores principales concentran el ' . $kpis['porcentaje_top5'] . '% del pasivo.',
+            ];
+        }
+
+        $inactivosConDeuda = collect($porProveedor)->filter(
+            fn($p) => $p['dias_ultima_compra'] !== null && $p['dias_ultima_compra'] > 90 && $p['deuda'] > 0
+        )->count();
+
+        if ($inactivosConDeuda > 0) {
+            $alertas[] = [
+                'tipo'    => 'warning',
+                'icono'   => 'ri-pause-circle-line',
+                'titulo'  => 'Proveedores inactivos con deuda',
+                'mensaje' => $inactivosConDeuda . ' proveedor(es) sin compras hace +90 días pero con saldo pendiente.',
+            ];
+        }
+
+        if ($totalPorVencer7d > 0) {
+            $alertas[] = [
+                'tipo'    => 'info',
+                'icono'   => 'ri-calendar-event-line',
+                'titulo'  => 'Vencimientos próximos',
+                'mensaje' => '$' . number_format($totalPorVencer7d, 2) . ' vencen esta semana.',
+            ];
+        }
+
+        if (!empty($porProveedor)) {
+            $top = $porProveedor[0];
+            $alertas[] = [
+                'tipo'    => 'warning',
+                'icono'   => 'ri-fire-line',
+                'titulo'  => 'Prioridad #1',
+                'mensaje' => $top['empresa'] . ' — $' . number_format($top['deuda'], 2)
+                    . ' (' . $top['dias_vencido_max'] . ' días vencido, score ' . $top['score'] . ').',
+            ];
+        }
+
+        // ==========================================
+        // 6. PROYECCIÓN GLOBAL 30 DÍAS
+        // ==========================================
+        $proyeccion = [];
+        for ($i = 0; $i <= 30; $i++) {
+            $fecha = Carbon::now()->addDays($i)->startOfDay();
+            $montoDia = $facturas->filter(function ($f) use ($fecha) {
+                return Carbon::parse($f->fechav)->startOfDay()->equalTo($fecha);
+            })->sum('deuda');
+
+            $proyeccion[] = [
+                'fecha' => $fecha->format('Y-m-d'),
+                'label' => $fecha->format('d/m'),
+                'monto' => round($montoDia, 2),
+            ];
+        }
+
+        // ==========================================
+        // 7. TOP 20 FACTURAS GLOBALES (para pago inmediato)
+        // ==========================================
+        $todasFacturas = collect();
+        foreach ($porProveedor as $p) {
+            foreach ($p['facturas'] as $f) {
+                $f['codprov'] = $p['codprov'];
+                $f['empresa'] = $p['empresa'];
+                // Score individual de factura
+                $scoreF = min(100, (
+                    min(40, $f['dias_vencidos']) +
+                    ($f['dias_vencidos'] == 0 ? max(0, 20 - $f['dias_por_vencer']) : 0) +
+                    min(25, ($f['deuda'] / max(1, $totalDeudaGlobal)) * 100 * 5) +
+                    ($p['categoria'] === 'critica' ? 15 : ($p['categoria'] === 'alta' ? 8 : 0))
+                ));
+                $f['score_factura'] = round($scoreF, 1);
+                $todasFacturas->push($f);
+            }
+        }
+        $topFacturas = $todasFacturas->sortByDesc('score_factura')->take(20)->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'kpis'             => $kpis,
+                'alertas'          => $alertas,
+                'proveedores'      => $porProveedor,
+                'top_facturas'     => $topFacturas,
+                'proyeccion'       => $proyeccion,
+            ],
+        ]);
+    }
+
+    /**
+     * Estructura vacía para reutilizar
+     */
+    private function estructuraGlobalVacia()
+    {
+        return [
+            'kpis' => [
+                'total_deuda' => 0, 'total_vencido' => 0, 'total_por_vencer_7d' => 0,
+                'total_proveedores' => 0, 'total_facturas' => 0, 'proveedores_criticos' => 0,
+                'porcentaje_vencido' => 0, 'proveedor_mas_critico' => null,
+                'deuda_top5' => 0, 'porcentaje_top5' => 0,
+            ],
+            'alertas'      => [],
+            'proveedores'  => [],
+            'top_facturas' => [],
+            'proyeccion'   => [],
+        ];
+    }
+
+    /**
      * Listado principal de proveedores
      */
     public function index(Request $request)

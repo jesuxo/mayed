@@ -347,6 +347,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/productos/{codprod}/datos-edit', [SaprodController::class, 'getDatosEdit'])
         ->name('productos.datos-edit');
     Route::post('/proveedores/buscarPredictivo', [SaprovController::class, 'buscarPredictivo'])->name('proveedores.buscarPredictivo');
+    Route::get('proveedores/analisis-gerencial-global-cxp', [SaprovController::class, 'analisisGerencialGlobalCxp'])
+        ->name('proveedores.analisis-gerencial-global-cxp');
     Route::get ('/proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])->name('proveedores.productos-panel');
     Route::post('/proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])->name('proveedores.productos-panel.post');
     Route::get('proveedores/{codprov}/cuentas-por-pagar', [SaprovController::class, 'getCuentasPorPagar'])
@@ -403,8 +405,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/buscar-factura/{tipo}/{numero}', [SafactController::class, 'buscarFacturaPorNumero'])
         ->name('documento.buscar.ajax');
 
-    Route::get('/buscar-factura/{tipo}/{numero}', [App\Http\Controllers\SafactController::class, 'buscarFacturaPorNumero'])
-        ->name('documento.buscar.ajax');
 
     Route::match(['get','post'],'/reporte/instpagobs',      [SatarjController::class, 'instpagobs'])->name('instpagobs');
     Route::match(['get','post'],'/reporte/instpagodolares', [SatarjController::class, 'instpagodolares'])->name('instpagodolares');

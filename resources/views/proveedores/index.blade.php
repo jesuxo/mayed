@@ -949,6 +949,11 @@
                                 <button type="button" id="btnActualizarResumenGeneral" class="btn btn-secondary btn-sm">
                                     <i class="ri-refresh-line"></i>
                                 </button>
+                                <div class="d-flex gap-2 mt-2 mt-sm-0">
+                                    <button type="button" id="btnAnalisisGlobalCxp" class="btn btn-dark btn-sm">
+                                        <i class="ri-bar-chart-box-line"></i> Análisis Gerencial Global
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -962,6 +967,7 @@
                         <div id="resumen-general-content">
                             <!-- Contenido cargado via AJAX -->
                         </div>
+                        <div id="analisis-global-cxp" class="mt-3" style="display:none;"></div>
                     </div>
                 </div>
             @endif
@@ -1049,6 +1055,272 @@
         let rgSortState  = { column: null, direction: 'asc' };
         let rgDataCache  = null;
         let rgTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
+
+        // ============================================
+        // ANÁLISIS GERENCIAL GLOBAL DE CxP
+        // ============================================
+        $(document).on('click', '#btnAnalisisGlobalCxp', function() {
+            const $btn  = $(this);
+            const $cont = $('#analisis-global-cxp');
+
+            $btn.prop('disabled', true).html('<i class="ri-loader-4-line"></i> Cargando...');
+
+            const solovencidos = $('#resumenSoloVencidosSwitch').is(':checked');
+            const fechavence   = $('#resumenFechavenceFilter').val();
+
+            $.ajax({
+                url: '{{ route("proveedores.analisis-gerencial-global-cxp") }}',
+                type: 'GET',
+                data: { solovencidos: solovencidos ? 1 : 0, fechavence },
+                success: function(response) {
+                    $btn.prop('disabled', false).html('<i class="ri-bar-chart-box-line"></i> Análisis Gerencial Global');
+                    if (response.success) {
+                        renderAnalisisGlobal(response.data);
+                        $cont.slideDown();
+                        $('html, body').animate({ scrollTop: $cont.offset().top - 100 }, 400);
+                    }
+                },
+                error: function() {
+                    $btn.prop('disabled', false).html('<i class="ri-bar-chart-box-line"></i> Análisis Gerencial Global');
+                    Swal.fire('Error', 'No se pudo cargar el análisis global', 'error');
+                }
+            });
+        });
+
+        function renderAnalisisGlobal(d) {
+            const k = d.kpis;
+            const catColors = { critica: 'danger', alta: 'warning', media: 'info', baja: 'secondary' };
+            const catLabels = { critica: 'CRÍTICA', alta: 'ALTA', media: 'MEDIA', baja: 'BAJA' };
+
+            // ===== KPIs =====
+            const kpisHtml = `
+        <div class="row g-3 mb-3">
+            <div class="col-md-3 col-lg-2">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted d-block">Pasivo Total</small>
+                        <h4 class="text-primary mb-0">$${formatNumber(k.total_deuda)}</h4>
+                        <small class="text-muted">${k.total_proveedores} proveedores</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <div class="card border-0 shadow-sm h-100 ${k.total_vencido > 0 ? 'bg-danger bg-opacity-10' : ''}">
+                    <div class="card-body p-3">
+                        <small class="text-muted d-block">Vencido</small>
+                        <h4 class="text-danger mb-0">$${formatNumber(k.total_vencido)}</h4>
+                        <small class="text-muted">${k.porcentaje_vencido}%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted d-block">Vence 7 días</small>
+                        <h4 class="text-warning mb-0">$${formatNumber(k.total_por_vencer_7d)}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted d-block">Críticos</small>
+                        <h4 class="text-danger mb-0">${k.proveedores_criticos}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-2">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted d-block">Top 5 proveedores</small>
+                        <h4 class="text-info mb-0">$${formatNumber(k.deuda_top5)}</h4>
+                        <small class="text-muted">${k.porcentaje_top5}% del total</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-2">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-3">
+                        <small class="text-muted d-block">Facturas</small>
+                        <h4 class="mb-0">${k.total_facturas}</h4>
+                        <small class="text-muted">por pagar</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            // ===== Alertas =====
+            let alertasHtml = '';
+            if (d.alertas.length) {
+                alertasHtml = '<div class="mb-3">' + d.alertas.map(a => `
+            <div class="alert alert-${a.tipo} d-flex align-items-start mb-2 py-2">
+                <i class="${a.icono} fs-5 me-2"></i>
+                <div><strong>${a.titulo}:</strong> ${a.mensaje}</div>
+            </div>
+        `).join('') + '</div>';
+            }
+
+            // ===== Ranking de proveedores =====
+            let rowsProv = d.proveedores.map(p => `
+        <tr class="${p.categoria === 'critica' ? 'table-danger' : (p.categoria === 'alta' ? 'table-warning' : '')}">
+            <td class="text-center fw-bold">${p.ranking}</td>
+            <td>
+                <span class="badge bg-${catColors[p.categoria]}">${catLabels[p.categoria]}</span>
+            </td>
+            <td>
+                <strong>${escapeHtml(p.empresa)}</strong>
+                <br><small class="text-muted">${escapeHtml(p.codprov)}</small>
+            </td>
+            <td class="text-end fw-bold text-danger">$${formatNumber(p.deuda)}</td>
+            <td class="text-end">
+                ${p.deuda_vencida > 0
+                ? `<span class="text-danger fw-bold">$${formatNumber(p.deuda_vencida)}</span>
+                       <br><small>${p.porcentaje_vencido}% del prov.</small>`
+                : '<span class="text-success">$0</span>'}
+            </td>
+            <td class="text-center">
+                <span class="badge bg-${p.dias_vencido_max > 0 ? 'danger' : 'success'}">
+                    ${p.dias_vencido_max > 0 ? p.dias_vencido_max + 'd' : 'Al día'}
+                </span>
+            </td>
+            <td class="text-center">${p.num_facturas}</td>
+            <td class="text-center small">
+                ${p.dias_ultima_compra !== null ? p.dias_ultima_compra + 'd' : 'N/A'}
+                <br><small class="text-muted">${p.facturas_12m} fact/12m</small>
+            </td>
+            <td class="text-center">
+                <div class="progress" style="height: 6px; width: 60px; margin: 0 auto;">
+                    <div class="progress-bar bg-${catColors[p.categoria]}" style="width: ${p.score}%"></div>
+                </div>
+                <small>${p.score}</small>
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary ver-detalle-global"
+                        data-codprov="${p.codprov}" data-descrip="${escapeHtml(p.empresa)}">
+                    <i class="ri-eye-line"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+            const rankingHtml = `
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-dark text-white d-flex justify-content-between">
+                <h6 class="mb-0"><i class="ri-trophy-line"></i> Ranking de proveedores a pagar primero</h6>
+                <small>${d.proveedores.length} proveedor(es)</small>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="4%">#</th>
+                                <th width="8%">Prioridad</th>
+                                <th width="22%">Proveedor</th>
+                                <th width="10%" class="text-end">Deuda Total</th>
+                                <th width="12%" class="text-end">Vencido</th>
+                                <th width="8%" class="text-center">Máx Venc.</th>
+                                <th width="6%" class="text-center"># Fact.</th>
+                                <th width="10%" class="text-center">Últ. Compra</th>
+                                <th width="8%" class="text-center">Score</th>
+                                <th width="5%">Ver</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsProv}</tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-light small text-muted">
+                <i class="ri-information-line"></i>
+                Score = antigüedad vencida + % vencido + peso relativo + criticidad + penalización inactividad.
+                Ordenado por urgencia de pago.
+            </div>
+        </div>
+    `;
+
+            // ===== Top 20 facturas (acción inmediata) =====
+            let rowsFact = d.top_facturas.map((f, i) => `
+        <tr>
+            <td class="text-center">${i + 1}</td>
+            <td><strong>${escapeHtml(f.empresa)}</strong><br><small>${escapeHtml(f.codprov)}</small></td>
+            <td>${escapeHtml(f.numerod || '-')}<br><small class="text-muted">${escapeHtml(f.concepto || '')}</small></td>
+            <td class="text-center">${f.fechav_fmt}</td>
+            <td class="text-center">
+                ${f.dias_vencidos > 0
+                ? `<span class="badge bg-danger">${f.dias_vencidos}d</span>`
+                : `<span class="badge bg-secondary">${f.dias_por_vencer}d</span>`}
+            </td>
+            <td class="text-end fw-bold text-danger">$${formatNumber(f.deuda)}</td>
+            <td class="text-center">
+                <div class="progress" style="height: 6px; width: 50px; margin: 0 auto;">
+                    <div class="progress-bar bg-danger" style="width: ${f.score_factura}%"></div>
+                </div>
+                <small>${f.score_factura}</small>
+            </td>
+        </tr>
+    `).join('');
+
+            const topFactHtml = `
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0"><i class="ri-flashlight-line"></i> Top 20 facturas para pago inmediato (todas las empresas)</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="4%">#</th>
+                                <th width="22%">Proveedor</th>
+                                <th width="25%">Documento</th>
+                                <th width="10%">Vence</th>
+                                <th width="10%">Estado</th>
+                                <th width="12%" class="text-end">Saldo</th>
+                                <th width="10%" class="text-center">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsFact}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+
+            // ===== Proyección =====
+            const maxProy = Math.max(...d.proyeccion.map(p => p.monto), 1);
+            const proyHtml = `
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="ri-line-chart-line"></i> Proyección global de vencimientos (30 días)</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-end gap-1" style="height: 100px;">
+                    ${d.proyeccion.map(p => {
+                const h = (p.monto / maxProy) * 100;
+                return `<div class="flex-fill bg-primary rounded-top"
+                                     style="height: ${h}%; min-height: ${p.monto > 0 ? 4 : 0}px;"
+                                     title="${p.label}: $${formatNumber(p.monto)}"></div>`;
+            }).join('')}
+                </div>
+                <div class="d-flex justify-content-between mt-1 small text-muted">
+                    <span>Hoy</span><span>+15d</span><span>+30d</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+            $('#analisis-global-cxp').html(kpisHtml + alertasHtml + rankingHtml + topFactHtml + proyHtml);
+
+            // Click en proveedor del ranking → ir al detalle
+            $(document).off('click', '.ver-detalle-global').on('click', '.ver-detalle-global', function() {
+                const codprov = $(this).data('codprov');
+                const descrip = $(this).data('descrip');
+                $('#codprov').val(codprov);
+                $('#busqueda').val(descrip);
+                $('#proveedorForm').submit();
+            });
+        }
 
 
         function sortIconRg(col) {
