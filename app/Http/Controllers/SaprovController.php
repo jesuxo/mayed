@@ -185,6 +185,27 @@ class SaprovController extends Controller
 
         $sucursales = Sasucursal::where('fk_comercial', $comercial)->get();
 
+        // === KPI Cuentas por Pagar del proveedor ===
+        $cxpKpi = Cwcxcprv::where('codprov', $codprov)
+            ->where('signo', 1)
+            ->whereRaw('(monto - abonado) > 0')
+            ->select(
+                DB::raw('COUNT(*) as total_facturas'),
+                DB::raw('SUM(monto - abonado) as deuda_total'),
+                DB::raw('SUM(CASE WHEN fechav < CURDATE() THEN (monto - abonado) ELSE 0 END) as deuda_vencida'),
+                DB::raw('SUM(CASE WHEN fechav < CURDATE() THEN 1 ELSE 0 END) as facturas_vencidas'),
+                DB::raw('MIN(fechav) as vencimiento_mas_antiguo')
+            )
+            ->first();
+
+        $cxpKpi = [
+            'total_facturas'          => (int)   ($cxpKpi->total_facturas ?? 0),
+            'deuda_total'             => (float) ($cxpKpi->deuda_total ?? 0),
+            'deuda_vencida'           => (float) ($cxpKpi->deuda_vencida ?? 0),
+            'facturas_vencidas'       => (int)   ($cxpKpi->facturas_vencidas ?? 0),
+            'vencimiento_mas_antiguo' => $cxpKpi->vencimiento_mas_antiguo ?? null,
+        ];
+
         return view('proveedores.productos-panel', compact(
             'proveedor',
             'fecha_desde',
@@ -195,8 +216,62 @@ class SaprovController extends Controller
             'kpi',
             'top_productos',
             'compras',
-            'sucursales' // Agregar esto
+            'sucursales',
+            'cxpKpi'
         ));
+    }
+
+    /**
+     * Cuentas por pagar de un proveedor en formato simple (para modal del panel de compras)
+     */
+    public function cxpProveedorSimple($codprov)
+    {
+        $facturas = Cwcxcprv::where('codprov', $codprov)
+            ->where('signo', 1)
+            ->whereRaw('(monto - abonado) > 0')
+            ->select(
+                'id',
+                'numerod',
+                'concepto',
+                'monto',
+                'abonado',
+                DB::raw('(monto - abonado) as deuda'),
+                'fecha',
+                'fechav'
+            )
+            ->orderBy('fechav', 'asc')
+            ->orderBy('fecha', 'asc')
+            ->get();
+
+        $hoy = Carbon::now()->startOfDay();
+
+        $rows = $facturas->map(function ($f) use ($hoy) {
+            $vence         = Carbon::parse($f->fechav)->startOfDay();
+            $diasVencidos  = $vence->lt($hoy) ? $vence->diffInDays($hoy) : 0;
+            $diasPorVencer = $vence->gte($hoy) ? $hoy->diffInDays($vence) : 0;
+
+            return [
+                'id'              => $f->id,
+                'numerod'         => $f->numerod,
+                'concepto'        => $f->concepto,
+                'monto'           => (float) $f->monto,
+                'abonado'         => (float) $f->abonado,
+                'deuda'           => (float) $f->deuda,
+                'fecha_fmt'       => Carbon::parse($f->fecha)->format('d/m/Y'),
+                'fechav_fmt'      => $vence->format('d/m/Y'),
+                'dias_vencidos'   => $diasVencidos,
+                'dias_por_vencer' => $diasPorVencer,
+            ];
+        });
+
+        return response()->json([
+            'success'       => true,
+            'facturas'      => $rows,
+            'total_deuda'   => $facturas->sum('deuda'),
+            'total_monto'   => $facturas->sum('monto'),
+            'total_abonado' => $facturas->sum('abonado'),
+            'total_facturas'=> $facturas->count(),
+        ]);
     }
 
     /**

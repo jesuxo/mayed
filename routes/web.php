@@ -12,6 +12,7 @@ use App\Http\Controllers\ChatConversationController;
 use App\Http\Controllers\CwtokenController;
 use App\Http\Controllers\SasucursalController;
 use App\Http\Controllers\CwtransferenciasController;
+use App\Http\Controllers\Seriales\VerificacionSerialController;
 use App\Http\Controllers\SacompController;
 use App\Http\Controllers\IAController;
 use App\Http\Controllers\Seriales\SerialController;
@@ -301,6 +302,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('proveedores.buscarPredictivo');
     Route::match(['get','post'], 'proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])
         ->name('proveedores.productos-panel');
+    Route::get('proveedores/{codprov}/cxp-simple', [SaprovController::class, 'cxpProveedorSimple'])
+        ->name('proveedores.cxp-simple');
     Route::post('proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])
         ->name('proveedores.productos-panel.post');
     Route::get('proveedores/{codprov}/cuentas-por-pagar', [SaprovController::class, 'getCuentasPorPagar'])
