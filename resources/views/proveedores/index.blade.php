@@ -1398,7 +1398,7 @@
                 const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
 
                 rows += `
-                    <tr style="cursor: pointer;">
+                    <tr>
                         <td class="text-center">${item._idx != null ? item._idx : ''}</td>
                         <td>
                             <strong>${escapeHtml(item.empresa)}</strong>
@@ -1414,12 +1414,33 @@
                             </div>
                             <small>${porcentajePagado.toFixed(0)}% pagado</small>
                         </td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary ver-proveedor"
-                                    data-codprov="${item.codprov}"
-                                    data-descrip="${escapeHtml(item.empresa)}">
-                                <i class="ri-eye-line"></i>
-                            </button>
+                        <td class="text-center" style="min-width: 130px;">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button"
+                                        class="btn btn-outline-primary btn-accion-proveedor"
+                                        data-codprov="${item.codprov}"
+                                        data-descrip="${escapeHtml(item.empresa)}"
+                                        data-accion="detalle"
+                                        title="Ir al proveedor">
+                                    <i class="ri-user-line"></i>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-outline-info btn-accion-proveedor"
+                                        data-codprov="${item.codprov}"
+                                        data-descrip="${escapeHtml(item.empresa)}"
+                                        data-accion="analisis"
+                                        title="Ir al análisis de compras">
+                                    <i class="ri-bar-chart-2-line"></i>
+                                </button>
+                                <button type="button"
+                                        class="btn btn-outline-warning btn-accion-proveedor"
+                                        data-codprov="${item.codprov}"
+                                        data-descrip="${escapeHtml(item.empresa)}"
+                                        data-accion="cxp"
+                                        title="Ir a Cuentas por Pagar">
+                                    <i class="ri-bank-card-line"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -1462,7 +1483,7 @@
                                 <th width="15%" class="text-end sortable-cxp" data-col="abonado">Total Abonado ${sortIconRg('abonado')}</th>
                                 <th width="15%" class="text-end sortable-cxp" data-col="deuda">Saldo Pendiente ${sortIconRg('deuda')}</th>
                                 <th width="10%" class="text-center sortable-cxp" data-col="progreso">Progreso ${sortIconRg('progreso')}</th>
-                                <th width="5%">Acción</th>
+                                <th width="12%" class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -1492,15 +1513,39 @@
                     renderResumenGeneral(rgDataCache, rgTotalsCache);
                 });
 
+            // Acciones por proveedor (3 botones)
             $(document)
-                .off('click.rgDet', '#resumen-general-content .ver-proveedor')
-                .on('click.rgDet', '#resumen-general-content .ver-proveedor', function(e) {
+                .off('click.rgAccion', '#resumen-general-content .btn-accion-proveedor')
+                .on('click.rgAccion', '#resumen-general-content .btn-accion-proveedor', function(e) {
                     e.stopPropagation();
                     const codprov = $(this).data('codprov');
                     const descrip = $(this).data('descrip');
-                    $('#codprov').val(codprov);
-                    $('#busqueda').val(descrip);
-                    $('#proveedorForm').submit();
+                    const accion  = $(this).data('accion');
+
+                    if (accion === 'analisis') {
+                        // Ir al panel de análisis de compras (nueva pestaña)
+                        window.open(`/proveedores/${codprov}/productos-panel`, '_blank');
+                    } else if (accion === 'cxp') {
+                        // Ir directo al tab de Cuentas por Pagar
+                        $('#codprov').val(codprov);
+                        $('#busqueda').val(descrip);
+                        if ($('#tab').length === 0) {
+                            $('<input>').attr({type: 'hidden', id: 'tab', name: 'tab'}).val('tab6').appendTo('#proveedorForm');
+                        } else {
+                            $('#tab').val('tab6');
+                        }
+                        $('#proveedorForm').submit();
+                    } else {
+                        // Ir al detalle del proveedor (tab por defecto = tab5)
+                        $('#codprov').val(codprov);
+                        $('#busqueda').val(descrip);
+                        if ($('#tab').length === 0) {
+                            $('<input>').attr({type: 'hidden', id: 'tab', name: 'tab'}).val('tab5').appendTo('#proveedorForm');
+                        } else {
+                            $('#tab').val('tab5');
+                        }
+                        $('#proveedorForm').submit();
+                    }
                 });
         }
 
