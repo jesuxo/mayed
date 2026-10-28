@@ -188,16 +188,8 @@
         #resumenGeneralCxpCard.hidden {
             display: none;
         }
-        .sortable-cxp {
-            user-select: none;
-            transition: background-color 0.15s;
-        }
-        .sortable-cxp:hover {
-            background-color: #e9ecef;
-        }
-        .sortable-cxp i {
-            margin-left: 3px;
-        }
+
+        /* Columnas ordenables de Cuentas por Pagar */
         .sortable-cxp {
             user-select: none;
             cursor: pointer !important;
@@ -205,6 +197,9 @@
         }
         .sortable-cxp:hover {
             background-color: #e9ecef !important;
+        }
+        .sortable-cxp i {
+            margin-left: 3px;
         }
     </style>
 @endsection
@@ -1040,12 +1035,6 @@
     <script src="{{ URL::asset('build/js/app.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-
-        // Estado de ordenamiento (global para el módulo)
-        let cxpSortState = { column: null, direction: 'asc' };
-        let cxpDataCache = null;
-        let cxpTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
-
         // ============================================
         // CONFIGURACIÓN INICIAL
         // ============================================
@@ -1054,6 +1043,14 @@
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
+
+        // ============================================
+        // ESTADO GLOBAL DE ORDENAMIENTO CXP
+        // (declarado ANTES de cualquier función que lo use)
+        // ============================================
+        let cxpSortState = { column: null, direction: 'asc' };
+        let cxpDataCache = null;
+        let cxpTotalsCache = { monto: 0, abonado: 0, deuda: 0 };
 
         // ============================================
         // FUNCIONES EXISTENTES
@@ -1067,6 +1064,85 @@
 
         function verViaje(id) {
             window.open(`/viajes/${id}/ver`, '_blank');
+        }
+
+        // ============================================
+        // HELPERS
+        // ============================================
+        function formatNumber(value) {
+            if (value === undefined || value === null || isNaN(value)) return '0,00';
+            return parseFloat(value).toLocaleString('es-VE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function parseFechaCxp(str) {
+            if (!str) return 0;
+            const partes = String(str).split('/');
+            if (partes.length !== 3) return 0;
+            const d = parseInt(partes[0], 10);
+            const m = parseInt(partes[1], 10) - 1;
+            const y = parseInt(partes[2], 10);
+            return new Date(y, m, d).getTime();
+        }
+
+        function sortIcon(col) {
+            if (cxpSortState.column !== col) {
+                return '<i class="ri-arrow-up-down-line text-muted" style="font-size:11px;"></i>';
+            }
+            return cxpSortState.direction === 'asc'
+                ? '<i class="ri-arrow-up-line text-primary"></i>'
+                : '<i class="ri-arrow-down-line text-primary"></i>';
+        }
+
+        function aplicarOrdenamientoCxp(data) {
+            if (!cxpSortState.column) return data;
+
+            const col = cxpSortState.column;
+            const dir = cxpSortState.direction === 'asc' ? 1 : -1;
+
+            return [...data].sort(function(a, b) {
+                let va, vb;
+
+                if (['monto', 'abonado', 'deuda'].includes(col)) {
+                    va = parseFloat(a[col]) || 0;
+                    vb = parseFloat(b[col]) || 0;
+                    return (va - vb) * dir;
+                }
+
+                if (col === 'fecha2') {
+                    va = parseFechaCxp(a.fecha2);
+                    vb = parseFechaCxp(b.fecha2);
+                    return (va - vb) * dir;
+                }
+
+                if (col === 'fechav') {
+                    va = parseFechaCxp(a.fechav2);
+                    vb = parseFechaCxp(b.fechav2);
+                    return (va - vb) * dir;
+                }
+
+                if (col === 'concepto') {
+                    va = (a.concepto || '').toString().toLowerCase();
+                    vb = (b.concepto || '').toString().toLowerCase();
+                    if (va < vb) return -1 * dir;
+                    if (va > vb) return 1 * dir;
+                    return 0;
+                }
+
+                return 0;
+            });
         }
 
         // ============================================
@@ -1301,19 +1377,18 @@
                                 <td class="text-end ${signo < 0 ? 'text-danger' : 'text-success'}">
                                     $${totalCalculado.toFixed(2)}
                                 </td>
-                                                            </tfoot>
-                        </table>
-                    </div>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             `;
 
             $('#compraModalBody').html(html);
         }
 
-
-        /**
-         * Cargar cuentas por pagar del proveedor
-         */
+        // ============================================
+        // CUENTAS POR PAGAR
+        // ============================================
         function cargarCuentasPorPagar(codprov, soloResumen = false, solovencidos = false, fechavence = '') {
             const $content = $('#cxp-content');
             const $loading = $('#cxp-loading');
@@ -1330,6 +1405,7 @@
                     fechavence   : fechavence
                 },
                 success: function(response) {
+                    console.log('[cargarCuentasPorPagar] response =', response);
                     $loading.addClass('d-none');
                     $content.removeClass('d-none');
 
@@ -1348,6 +1424,7 @@
                     }
                 },
                 error: function(xhr) {
+                    console.error('[cargarCuentasPorPagar] error =', xhr);
                     $loading.addClass('d-none');
                     $content.removeClass('d-none');
                     let errorMsg = 'Error al cargar las cuentas por pagar';
@@ -1363,9 +1440,6 @@
             });
         }
 
-        /**
-         * Renderizar resumen de cuentas por pagar
-         */
         function renderResumenCuentas(data) {
             if (!data || !data.codprov) {
                 $('#cxp-content').html(`
@@ -1415,7 +1489,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Barra de progreso -->
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between small mb-1">
                                         <span>Pagado: ${porcentajePagado.toFixed(1)}%</span>
@@ -1448,70 +1521,19 @@
             $('#cxp-content').html(html);
         }
 
-        function aplicarOrdenamientoCxp(data) {
-            if (!cxpSortState.column) return data;
-
-            const col = cxpSortState.column;
-            const dir = cxpSortState.direction === 'asc' ? 1 : -1;
-
-            return [...data].sort(function(a, b) {
-                let va, vb;
-
-                // Columnas numéricas
-                if (['monto', 'abonado', 'deuda'].includes(col)) {
-                    va = parseFloat(a[col]) || 0;
-                    vb = parseFloat(b[col]) || 0;
-                    return (va - vb) * dir;
-                }
-
-                // Fecha emisión (propiedad real: fecha2)
-                if (col === 'fecha2') {
-                    va = parseFechaCxp(a.fecha2);
-                    vb = parseFechaCxp(b.fecha2);
-                    return (va - vb) * dir;
-                }
-
-                // Fecha vence (propiedad real: fechav2)
-                if (col === 'fechav') {
-                    va = parseFechaCxp(a.fechav2);
-                    vb = parseFechaCxp(b.fechav2);
-                    return (va - vb) * dir;
-                }
-
-                // Texto (concepto)
-                if (col === 'concepto') {
-                    va = (a.concepto || '').toString().toLowerCase();
-                    vb = (b.concepto || '').toString().toLowerCase();
-                    if (va < vb) return -1 * dir;
-                    if (va > vb) return 1 * dir;
-                    return 0;
-                }
-
-                return 0;
-            });
-        }
-
-        /**
-         * Convierte fecha dd/mm/yyyy a timestamp (para ordenar)
-         */
-        function parseFechaCxp(str) {
-            if (!str) return 0;
-            const partes = String(str).split('/');
-            if (partes.length !== 3) return 0;
-            const d = parseInt(partes[0], 10);
-            const m = parseInt(partes[1], 10) - 1;
-            const y = parseInt(partes[2], 10);
-            return new Date(y, m, d).getTime();
-        }
-
         function renderDetalleCuentas(data, totalMonto, totalAbonado, totalDeuda) {
+            console.log('[renderDetalleCuentas] data =', data,
+                '| totalMonto =', totalMonto,
+                '| totalAbonado =', totalAbonado,
+                '| totalDeuda =', totalDeuda);
+
             if (!data || data.length === 0) {
                 $('#cxp-content').html(`
-            <div class="text-center py-4">
-                <i class="ri-inbox-line fs-1 text-muted"></i>
-                <p class="text-muted mt-2">No hay cuentas por pagar para este proveedor</p>
-            </div>
-        `);
+                    <div class="text-center py-4">
+                        <i class="ri-inbox-line fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No hay cuentas por pagar para este proveedor</p>
+                    </div>
+                `);
                 return;
             }
 
@@ -1543,97 +1565,87 @@
                 const abonado = parseFloat(item.abonado) || 0;
 
                 rows += `
-            <tr class="${isOverdue ? 'table-danger' : ''}">
-                <td class="text-center">${item.fecha2 || '-'}</td>
-                <td class="text-center">
-                    ${item.fechav2 || '-'}
-                    ${isOverdue ? `<br><small class="text-danger">Vencido hace ${diasVencido} día(s)</small>` : ''}
-                </td>
-                <td class="text-wrap" style="max-width: 250px;">
-                    <strong>${escapeHtml(item.concepto || '-')}</strong>
-                    ${item.numerod ? `<br><small class="text-muted">Doc: ${escapeHtml(item.numerod)}</small>` : ''}
-                </td>
-                <td class="text-end">$${formatNumber(monto)}</td>
-                <td class="text-end">$${formatNumber(abonado)}</td>
-                <td class="text-end fw-bold ${deuda > 0 ? 'text-danger' : 'text-success'}">
-                    $${formatNumber(deuda)}
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary ver-detalle-cxp"
-                            data-id="${item.id}"
-                            data-numerod="${escapeHtml(item.numerod || '')}"
-                            data-concepto="${escapeHtml(item.concepto || '')}"
-                            data-monto="${monto}"
-                            data-abonado="${abonado}"
-                            data-deuda="${deuda}"
-                            data-fecha2="${item.fecha2 || ''}"
-                            data-fechav="${item.fechav2 || ''}">
-                        <i class="ri-eye-line"></i> Ver
-                    </button>
-                </td>
-            </tr>
-        `;
+                    <tr class="${isOverdue ? 'table-danger' : ''}">
+                        <td class="text-center">${item.fecha2 || '-'}</td>
+                        <td class="text-center">
+                            ${item.fechav2 || '-'}
+                            ${isOverdue ? `<br><small class="text-danger">Vencido hace ${diasVencido} día(s)</small>` : ''}
+                        </td>
+                        <td class="text-wrap" style="max-width: 250px;">
+                            <strong>${escapeHtml(item.concepto || '-')}</strong>
+                            ${item.numerod ? `<br><small class="text-muted">Doc: ${escapeHtml(item.numerod)}</small>` : ''}
+                        </td>
+                        <td class="text-end">$${formatNumber(monto)}</td>
+                        <td class="text-end">$${formatNumber(abonado)}</td>
+                        <td class="text-end fw-bold ${deuda > 0 ? 'text-danger' : 'text-success'}">
+                            $${formatNumber(deuda)}
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary ver-detalle-cxp"
+                                    data-id="${item.id}"
+                                    data-numerod="${escapeHtml(item.numerod || '')}"
+                                    data-concepto="${escapeHtml(item.concepto || '')}"
+                                    data-monto="${monto}"
+                                    data-abonado="${abonado}"
+                                    data-deuda="${deuda}"
+                                    data-fecha2="${item.fecha2 || ''}"
+                                    data-fechav="${item.fechav2 || ''}">
+                                <i class="ri-eye-line"></i> Ver
+                            </button>
+                        </td>
+                    </tr>
+                `;
             });
 
-            // Icono de orden
-            function sortIcon(col) {
-                if (cxpSortState.column !== col) {
-                    return '<i class="ri-arrow-up-down-line text-muted" style="font-size:11px;"></i>';
-                }
-                return cxpSortState.direction === 'asc'
-                    ? '<i class="ri-arrow-up-line text-primary"></i>'
-                    : '<i class="ri-arrow-down-line text-primary"></i>';
-            }
-
             const html = `
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap">
-                    <span>
-                        <i class="ri-information-line"></i>
-                        <strong>Resumen:</strong>
-                        Total Facturado: <strong class="text-primary">$${formatNumber(totalMonto)}</strong> |
-                        Total Abonado: <strong class="text-success">$${formatNumber(totalAbonado)}</strong> |
-                        Saldo Pendiente: <strong class="text-danger">$${formatNumber(totalDeuda)}</strong>
-                    </span>
-                    <span class="mt-2 mt-sm-0">
-                        <small class="text-muted">
-                            <i class="ri-file-list-line"></i> ${data.length} documento(s)
-                        </small>
-                    </span>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap">
+                            <span>
+                                <i class="ri-information-line"></i>
+                                <strong>Resumen:</strong>
+                                Total Facturado: <strong class="text-primary">$${formatNumber(totalMonto)}</strong> |
+                                Total Abonado: <strong class="text-success">$${formatNumber(totalAbonado)}</strong> |
+                                Saldo Pendiente: <strong class="text-danger">$${formatNumber(totalDeuda)}</strong>
+                            </span>
+                            <span class="mt-2 mt-sm-0">
+                                <small class="text-muted">
+                                    <i class="ri-file-list-line"></i> ${data.length} documento(s)
+                                </small>
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm table-hover table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th width="10%" class="sortable-cxp" data-col="fecha2">Fecha Emisión ${sortIcon('fecha2')}</th>
-                        <th width="12%" class="sortable-cxp" data-col="fechav">Fecha Vence ${sortIcon('fechav')}</th>
-                        <th width="35%" class="sortable-cxp" data-col="concepto">Concepto / Documento ${sortIcon('concepto')}</th>
-                        <th width="12%" class="text-end sortable-cxp" data-col="monto">Monto ${sortIcon('monto')}</th>
-                        <th width="12%" class="text-end sortable-cxp" data-col="abonado">Abonado ${sortIcon('abonado')}</th>
-                        <th width="12%" class="text-end sortable-cxp" data-col="deuda">Saldo ${sortIcon('deuda')}</th>
-                        <th width="7%">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-                <tfoot class="table-secondary">
-                    <tr class="fw-bold">
-                        <td colspan="3" class="text-end">TOTALES:</td>
-                        <td class="text-end">$${formatNumber(totalMonto)}</td>
-                        <td class="text-end">$${formatNumber(totalAbonado)}</td>
-                        <td class="text-end text-danger">$${formatNumber(totalDeuda)}</td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    `;
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="10%" class="sortable-cxp" data-col="fecha2">Fecha Emisión ${sortIcon('fecha2')}</th>
+                                <th width="12%" class="sortable-cxp" data-col="fechav">Fecha Vence ${sortIcon('fechav')}</th>
+                                <th width="35%" class="sortable-cxp" data-col="concepto">Concepto / Documento ${sortIcon('concepto')}</th>
+                                <th width="12%" class="text-end sortable-cxp" data-col="monto">Monto ${sortIcon('monto')}</th>
+                                <th width="12%" class="text-end sortable-cxp" data-col="abonado">Abonado ${sortIcon('abonado')}</th>
+                                <th width="12%" class="text-end sortable-cxp" data-col="deuda">Saldo ${sortIcon('deuda')}</th>
+                                <th width="7%">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                        <tfoot class="table-secondary">
+                            <tr class="fw-bold">
+                                <td colspan="3" class="text-end">TOTALES:</td>
+                                <td class="text-end">$${formatNumber(totalMonto)}</td>
+                                <td class="text-end">$${formatNumber(totalAbonado)}</td>
+                                <td class="text-end text-danger">$${formatNumber(totalDeuda)}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
 
             $('#cxp-content').html(html);
 
-            // Delegación de eventos (importante: usar delegación en document)
+            // Delegación de eventos
             $(document)
                 .off('click.cxpSort', '.sortable-cxp')
                 .on('click.cxpSort', '.sortable-cxp', function() {
@@ -1646,35 +1658,73 @@
                     }
                     renderDetalleCuentas(cxpDataCache, cxpTotalsCache.monto, cxpTotalsCache.abonado, cxpTotalsCache.deuda);
                 });
+
+            // Detalle de la cuenta
+            $(document)
+                .off('click.cxpDet', '.ver-detalle-cxp')
+                .on('click.cxpDet', '.ver-detalle-cxp', function() {
+                    const numerod  = $(this).data('numerod');
+                    const concepto = $(this).data('concepto');
+                    const monto    = $(this).data('monto');
+                    const abonado  = $(this).data('abonado');
+                    const deuda    = $(this).data('deuda');
+                    const fecha2   = $(this).data('fecha2');
+                    const fechav   = $(this).data('fechav');
+
+                    const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
+                    const porcentajeDeuda  = monto > 0 ? (deuda / monto * 100) : 0;
+
+                    Swal.fire({
+                        title: 'Detalle de Cuenta por Pagar',
+                        html: `
+                            <div class="text-start">
+                                <div class="mb-3">
+                                    <p><strong><i class="ri-file-copy-line"></i> Documento:</strong> ${numerod || 'N/A'}</p>
+                                    <p><strong><i class="ri-calendar-line"></i> Fecha Emisión:</strong> ${fecha2 || 'N/A'}</p>
+                                    <p><strong><i class="ri-calendar-event-line"></i> Fecha Vencimiento:</strong> ${fechav || 'N/A'}</p>
+                                    <p><strong><i class="ri-survey-line"></i> Concepto:</strong> ${concepto}</p>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="text-center p-2 border rounded">
+                                            <small class="text-muted d-block">Monto</small>
+                                            <h5 class="text-primary mb-0">$${formatNumber(monto)}</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-center p-2 border rounded">
+                                            <small class="text-muted d-block">Abonado</small>
+                                            <h5 class="text-success mb-0">$${formatNumber(abonado)}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="text-center p-2 border rounded bg-light">
+                                        <small class="text-muted d-block">Saldo Pendiente</small>
+                                        <h4 class="text-danger mb-0">$${formatNumber(deuda)}</h4>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: ${porcentajePagado}%">${porcentajePagado.toFixed(1)}%</div>
+                                        <div class="progress-bar bg-danger" role="progressbar"
+                                             style="width: ${porcentajeDeuda}%">${porcentajeDeuda.toFixed(1)}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `,
+                        icon: 'info',
+                        confirmButtonText: 'Cerrar',
+                        width: '500px'
+                    });
+                });
         }
 
-        /**
-         * Formatear número a moneda
-         */
-        function formatNumber(value) {
-            if (value === undefined || value === null || isNaN(value)) return '0,00';
-            return parseFloat(value).toLocaleString('es-VE', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-        }
-
-        /**
-         * Escapar HTML para prevenir XSS
-         */
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        /**
-         * Inicializar datepicker
-         */
+        // ============================================
+        // INICIALIZACIÓN DE FILTROS CXP
+        // ============================================
         function initDatepicker() {
             if (typeof $.fn.datepicker !== 'undefined') {
                 $('.datepicker').datepicker({
@@ -1686,29 +1736,26 @@
             }
         }
 
-        /**
-         * Inicializar eventos del Tab 6
-         */
         function initCuentasPorPagar() {
             const codprov = '{{ $proveedor->codprov ?? "" }}';
 
-            // Variables para filtros
             let currentSoloResumen = false;
             let currentSolovencidos = false;
             let currentFechavence = '';
 
-            // Botón filtrar
             $('#btnFiltrarCxp').off('click').on('click', function() {
                 currentSoloResumen = $('#soloResumenSwitch').is(':checked');
                 currentSolovencidos = $('#solovencidosSwitch').is(':checked');
                 currentFechavence = $('#fechavenceFilter').val();
+
+                // Reset orden al cambiar filtro
+                cxpSortState = { column: null, direction: 'asc' };
 
                 if (codprov) {
                     cargarCuentasPorPagar(codprov, currentSoloResumen, currentSolovencidos, currentFechavence);
                 }
             });
 
-            // Botón actualizar/limpiar
             $('#btnActualizarCxp').off('click').on('click', function() {
                 $('#soloResumenSwitch').prop('checked', false);
                 $('#solovencidosSwitch').prop('checked', false);
@@ -1717,22 +1764,19 @@
                 currentSolovencidos = false;
                 currentFechavence = '';
 
+                cxpSortState = { column: null, direction: 'asc' };
+
                 if (codprov) {
                     cargarCuentasPorPagar(codprov, false, false, '');
                 }
             });
 
-            // Cargar datos si estamos en el tab6
             if (codprov && '{{ $tab }}' === 'tab6') {
                 cargarCuentasPorPagar(codprov, false, false, '');
             }
         }
 
-        /**
-         * Observar cambios de tab para cargar cuentas por pagar
-         */
         function observeTabChanges() {
-            // Detectar cuando se hace clic en el tab de cuentas por pagar
             $(document).on('click', 'a[href*="tab=tab6"]', function() {
                 const codprov = '{{ $proveedor->codprov ?? "" }}';
                 if (codprov) {
@@ -1749,10 +1793,6 @@
         // ============================================
         // RESUMEN GENERAL DE CUENTAS POR PAGAR
         // ============================================
-
-        /**
-         * Cargar resumen general de cuentas por pagar
-         */
         function cargarResumenGeneralCuentas(solovencidos = false, fechavence = '') {
             const $content = $('#resumen-general-content');
             const $loading = $('#resumen-general-loading');
@@ -1775,35 +1815,32 @@
                         renderResumenGeneral(response.data, response.totales);
                     } else {
                         $content.html(`
-                    <div class="alert alert-danger">
-                        <i class="ri-error-warning-line"></i> Error al cargar los datos
-                    </div>
-                `);
+                            <div class="alert alert-danger">
+                                <i class="ri-error-warning-line"></i> Error al cargar los datos
+                            </div>
+                        `);
                     }
                 },
                 error: function(xhr) {
                     $loading.addClass('d-none');
                     $content.removeClass('d-none');
                     $content.html(`
-                <div class="alert alert-danger">
-                    <i class="ri-error-warning-line"></i> Error al cargar el resumen de cuentas por pagar
-                </div>
-            `);
+                        <div class="alert alert-danger">
+                            <i class="ri-error-warning-line"></i> Error al cargar el resumen de cuentas por pagar
+                        </div>
+                    `);
                 }
             });
         }
 
-        /**
-         * Renderizar resumen general de cuentas por pagar
-         */
         function renderResumenGeneral(data, totales) {
             if (!data || data.length === 0) {
                 $('#resumen-general-content').html(`
-            <div class="text-center py-4">
-                <i class="ri-inbox-line fs-1 text-muted"></i>
-                <p class="text-muted mt-2">No hay cuentas por pagar registradas</p>
-            </div>
-        `);
+                    <div class="text-center py-4">
+                        <i class="ri-inbox-line fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No hay cuentas por pagar registradas</p>
+                    </div>
+                `);
                 $('#totalProveedoresCxp').text('0');
                 return;
             }
@@ -1816,38 +1853,38 @@
                 const monto = parseFloat(item.monto) || 0;
                 const abonado = parseFloat(item.abonado) || 0;
                 const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
-//onclick="seleccionarProveedorCxp('${item.codprov}', '${escapeHtml(item.empresa)}')"
+
                 rows += `
-            <tr style="cursor: pointer;" >
-                <td class="text-center">${index + 1}</td>
-                <td>
-                    <strong>${escapeHtml(item.empresa)}</strong>
-                    <br><small class="text-muted">Código: ${escapeHtml(item.codprov)}</small>
-                </td>
-                <td class="text-end">$${formatNumber(monto)}</td>
-                <td class="text-end">$${formatNumber(abonado)}</td>
-                <td class="text-end fw-bold ${deuda > 0 ? 'text-danger' : 'text-success'}">
-                    $${formatNumber(deuda)}
-                </td>
-                <td class="text-center" style="min-width: 100px;">
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar bg-success" role="progressbar"
-                             style="width: ${porcentajePagado}%"
-                             aria-valuenow="${porcentajePagado}" aria-valuemin="0" aria-valuemax="100"></div>
-                        <div class="progress-bar bg-danger" role="progressbar"
-                             style="width: ${100 - porcentajePagado}%"></div>
-                    </div>
-                    <small>${porcentajePagado.toFixed(0)}% pagado</small>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary ver-proveedor"
-                            data-codprov="${item.codprov}"
-                            data-descrip="${escapeHtml(item.empresa)}">
-                        <i class="ri-eye-line"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
+                    <tr style="cursor: pointer;">
+                        <td class="text-center">${index + 1}</td>
+                        <td>
+                            <strong>${escapeHtml(item.empresa)}</strong>
+                            <br><small class="text-muted">Código: ${escapeHtml(item.codprov)}</small>
+                        </td>
+                        <td class="text-end">$${formatNumber(monto)}</td>
+                        <td class="text-end">$${formatNumber(abonado)}</td>
+                        <td class="text-end fw-bold ${deuda > 0 ? 'text-danger' : 'text-success'}">
+                            $${formatNumber(deuda)}
+                        </td>
+                        <td class="text-center" style="min-width: 100px;">
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                     style="width: ${porcentajePagado}%"
+                                     aria-valuenow="${porcentajePagado}" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div class="progress-bar bg-danger" role="progressbar"
+                                     style="width: ${100 - porcentajePagado}%"></div>
+                            </div>
+                            <small>${porcentajePagado.toFixed(0)}% pagado</small>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary ver-proveedor"
+                                    data-codprov="${item.codprov}"
+                                    data-descrip="${escapeHtml(item.empresa)}">
+                                <i class="ri-eye-line"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
             });
 
             const totalDeuda = parseFloat(totales.deuda) || 0;
@@ -1856,69 +1893,66 @@
             const porcentajeGeneral = totalMonto > 0 ? (totalAbonado / totalMonto * 100) : 0;
 
             const html = `
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap">
-                    <span>
-                        <i class="ri-information-line"></i>
-                        <strong>Resumen General:</strong>
-                        Total Facturado: <strong class="text-primary">$${formatNumber(totalMonto)}</strong> |
-                        Total Abonado: <strong class="text-success">$${formatNumber(totalAbonado)}</strong> |
-                        Saldo Pendiente Total: <strong class="text-danger">$${formatNumber(totalDeuda)}</strong>
-                    </span>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap">
+                            <span>
+                                <i class="ri-information-line"></i>
+                                <strong>Resumen General:</strong>
+                                Total Facturado: <strong class="text-primary">$${formatNumber(totalMonto)}</strong> |
+                                Total Abonado: <strong class="text-success">$${formatNumber(totalAbonado)}</strong> |
+                                Saldo Pendiente Total: <strong class="text-danger">$${formatNumber(totalDeuda)}</strong>
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="mb-3">
-            <div class="d-flex justify-content-between small mb-1">
-                <span>Porcentaje General Pagado: ${porcentajeGeneral.toFixed(1)}%</span>
-                <span>Porcentaje General Pendiente: ${(100 - porcentajeGeneral).toFixed(1)}%</span>
-            </div>
-            <div class="progress" style="height: 20px;">
-                <div class="progress-bar bg-success" role="progressbar"
-                     style="width: ${porcentajeGeneral}%"
-                     aria-valuenow="${porcentajeGeneral}" aria-valuemin="0" aria-valuemax="100">
-                    $${formatNumber(totalAbonado)}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Porcentaje General Pagado: ${porcentajeGeneral.toFixed(1)}%</span>
+                        <span>Porcentaje General Pendiente: ${(100 - porcentajeGeneral).toFixed(1)}%</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: ${porcentajeGeneral}%"
+                             aria-valuenow="${porcentajeGeneral}" aria-valuemin="0" aria-valuemax="100">
+                            $${formatNumber(totalAbonado)}
+                        </div>
+                        <div class="progress-bar bg-danger" role="progressbar"
+                             style="width: ${100 - porcentajeGeneral}%"
+                             aria-valuenow="${100 - porcentajeGeneral}" aria-valuemin="0" aria-valuemax="100">
+                            $${formatNumber(totalDeuda)}
+                        </div>
+                    </div>
                 </div>
-                <div class="progress-bar bg-danger" role="progressbar"
-                     style="width: ${100 - porcentajeGeneral}%"
-                     aria-valuenow="${100 - porcentajeGeneral}" aria-valuemin="0" aria-valuemax="100">
-                    $${formatNumber(totalDeuda)}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">#</th>
+                                <th width="35%">Proveedor</th>
+                                <th width="15%" class="text-end">Total Facturado</th>
+                                <th width="15%" class="text-end">Total Abonado</th>
+                                <th width="15%" class="text-end">Saldo Pendiente</th>
+                                <th width="10%" class="text-center">Progreso</th>
+                                <th width="5%">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                        <tfoot class="table-secondary">
+                            <tr class="fw-bold">
+                                <td colspan="2" class="text-end">TOTALES:</td>
+                                <td class="text-end">$${formatNumber(totalMonto)}</td>
+                                <td class="text-end">$${formatNumber(totalAbonado)}</td>
+                                <td class="text-end text-danger">$${formatNumber(totalDeuda)}</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
-            </div>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm table-hover table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th width="5%">#</th>
-                        <th width="35%">Proveedor</th>
-                        <th width="15%" class="text-end">Total Facturado</th>
-                        <th width="15%" class="text-end">Total Abonado</th>
-                        <th width="15%" class="text-end">Saldo Pendiente</th>
-                        <th width="10%" class="text-center">Progreso</th>
-                        <th width="5%">Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
-                <tfoot class="table-secondary">
-                    <tr class="fw-bold">
-                        <td colspan="2" class="text-end">TOTALES:</td>
-                        <td class="text-end">$${formatNumber(totalMonto)}</td>
-                        <td class="text-end">$${formatNumber(totalAbonado)}</td>
-                        <td class="text-end text-danger">$${formatNumber(totalDeuda)}</td>
-                        <td colspan="2"></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    `;
+            `;
 
             $('#resumen-general-content').html(html);
 
-            // Evento para ver detalle del proveedor
             $(document).off('click', '.ver-proveedor').on('click', '.ver-proveedor', function(e) {
                 e.stopPropagation();
                 const codprov = $(this).data('codprov');
@@ -1927,36 +1961,25 @@
             });
         }
 
-        /**
-         * Función global para seleccionar proveedor desde el resumen
-         */
         window.seleccionarProveedorCxp = function(codprov, descrip) {
-            // Actualizar el formulario oculto y enviar
             $('#codprov').val(codprov);
             $('#tab').val('tab');
             $('#busqueda').val(descrip);
             $('#proveedorForm').submit();
-        }
+        };
 
-        /**
-         * Inicializar eventos del resumen general
-         */
         function initResumenGeneral() {
-            // Variables para filtros
             let currentSolovencidos = false;
             let currentFechavence = '';
 
-            // Cargar datos iniciales
             cargarResumenGeneralCuentas(false, '');
 
-            // Botón filtrar
             $('#btnFiltrarResumenGeneral').off('click').on('click', function() {
                 currentSolovencidos = $('#resumenSoloVencidosSwitch').is(':checked');
                 currentFechavence = $('#resumenFechavenceFilter').val();
                 cargarResumenGeneralCuentas(currentSolovencidos, currentFechavence);
             });
 
-            // Botón actualizar/limpiar
             $('#btnActualizarResumenGeneral').off('click').on('click', function() {
                 $('#resumenSoloVencidosSwitch').prop('checked', false);
                 $('#resumenFechavenceFilter').val('');
@@ -1964,19 +1987,15 @@
             });
         }
 
-
-        // Mostrar/ocultar resumen general según si hay proveedor seleccionado
         function toggleResumenGeneral() {
             const hasProveedor = '{{ isset($proveedor) && $proveedor->codprov ? 1 : 0 }}';
             if (hasProveedor == 1) {
                 $('#resumenGeneralCxpCard').addClass('hidden');
             } else {
                 $('#resumenGeneralCxpCard').removeClass('hidden');
-                // Recargar datos si está visible
                 cargarResumenGeneralCuentas(false, '');
             }
         }
-
 
         $(document).ready(function() {
             initDatepicker();
@@ -1985,7 +2004,5 @@
             initResumenGeneral();
             toggleResumenGeneral();
         });
-
-
     </script>
 @endsection
