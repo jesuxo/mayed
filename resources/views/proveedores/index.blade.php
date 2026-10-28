@@ -198,6 +198,14 @@
         .sortable-cxp i {
             margin-left: 3px;
         }
+        .sortable-cxp {
+            user-select: none;
+            cursor: pointer !important;
+            transition: background-color 0.15s;
+        }
+        .sortable-cxp:hover {
+            background-color: #e9ecef !important;
+        }
     </style>
 @endsection
 @section('content')
@@ -1434,9 +1442,6 @@
             $('#cxp-content').html(html);
         }
 
-        /**
-         * Aplica el ordenamiento actual a los datos de CxP
-         */
         function aplicarOrdenamientoCxp(data) {
             if (!cxpSortState.column) return data;
 
@@ -1444,28 +1449,38 @@
             const dir = cxpSortState.direction === 'asc' ? 1 : -1;
 
             return [...data].sort(function(a, b) {
-                let va = a[col];
-                let vb = b[col];
+                let va, vb;
 
                 // Columnas numéricas
                 if (['monto', 'abonado', 'deuda'].includes(col)) {
-                    va = parseFloat(va) || 0;
-                    vb = parseFloat(vb) || 0;
+                    va = parseFloat(a[col]) || 0;
+                    vb = parseFloat(b[col]) || 0;
                     return (va - vb) * dir;
                 }
 
-                // Columnas de fecha (formato dd/mm/yyyy o ya formateadas)
-                if (col === 'fecha2' || col === 'fechav') {
-                    const fa = parseFechaCxp(a[col === 'fecha2' ? 'fecha2' : 'fechav2']);
-                    const fb = parseFechaCxp(b[col === 'fecha2' ? 'fecha2' : 'fechav2']);
-                    return (fa - fb) * dir;
+                // Fecha emisión (propiedad real: fecha2)
+                if (col === 'fecha2') {
+                    va = parseFechaCxp(a.fecha2);
+                    vb = parseFechaCxp(b.fecha2);
+                    return (va - vb) * dir;
+                }
+
+                // Fecha vence (propiedad real: fechav2)
+                if (col === 'fechav') {
+                    va = parseFechaCxp(a.fechav2);
+                    vb = parseFechaCxp(b.fechav2);
+                    return (va - vb) * dir;
                 }
 
                 // Texto (concepto)
-                va = (va || '').toString().toLowerCase();
-                vb = (vb || '').toString().toLowerCase();
-                if (va < vb) return -1 * dir;
-                if (va > vb) return 1 * dir;
+                if (col === 'concepto') {
+                    va = (a.concepto || '').toString().toLowerCase();
+                    vb = (b.concepto || '').toString().toLowerCase();
+                    if (va < vb) return -1 * dir;
+                    if (va > vb) return 1 * dir;
+                    return 0;
+                }
+
                 return 0;
             });
         }
@@ -1500,14 +1515,11 @@
                 return;
             }
 
-            // Guardar datos en caché para reordenar sin re-consultar
             cxpDataCache = data;
             cxpTotalsCache = { monto: totalMonto, abonado: totalAbonado, deuda: totalDeuda };
 
-            // Aplicar ordenamiento actual
             const sortedData = aplicarOrdenamientoCxp(data);
 
-            // Construir filas
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
 
@@ -1515,8 +1527,8 @@
             sortedData.forEach(function(item) {
                 let isOverdue = false;
                 let diasVencido = 0;
-                if (item.fechav) {
-                    const partes = item.fechav.split('/');
+                if (item.fechav2) {
+                    const partes = item.fechav2.split('/');
                     if (partes.length === 3) {
                         const fechaVence = new Date(partes[2], partes[1] - 1, partes[0]);
                         isOverdue = fechaVence < hoy;
@@ -1563,15 +1575,15 @@
         `;
             });
 
-            // Helper para icono de orden
-            const sortIcon = (col) => {
+            // Icono de orden
+            function sortIcon(col) {
                 if (cxpSortState.column !== col) {
                     return '<i class="ri-arrow-up-down-line text-muted" style="font-size:11px;"></i>';
                 }
                 return cxpSortState.direction === 'asc'
                     ? '<i class="ri-arrow-up-line text-primary"></i>'
                     : '<i class="ri-arrow-down-line text-primary"></i>';
-            };
+            }
 
             const html = `
         <div class="row mb-3">
@@ -1596,18 +1608,16 @@
             <table class="table table-sm table-hover table-bordered">
                 <thead class="table-light">
                     <tr>
-                        <th width="10%" class="sortable-cxp" data-col="fecha2" style="cursor:pointer;">Fecha Emisión ${sortIcon('fecha2')}</th>
-                        <th width="12%" class="sortable-cxp" data-col="fechav" style="cursor:pointer;">Fecha Vence ${sortIcon('fechav')}</th>
-                        <th width="35%" class="sortable-cxp" data-col="concepto" style="cursor:pointer;">Concepto / Documento ${sortIcon('concepto')}</th>
-                        <th width="12%" class="text-end sortable-cxp" data-col="monto" style="cursor:pointer;">Monto ${sortIcon('monto')}</th>
-                        <th width="12%" class="text-end sortable-cxp" data-col="abonado" style="cursor:pointer;">Abonado ${sortIcon('abonado')}</th>
-                        <th width="12%" class="text-end sortable-cxp" data-col="deuda" style="cursor:pointer;">Saldo ${sortIcon('deuda')}</th>
+                        <th width="10%" class="sortable-cxp" data-col="fecha2">Fecha Emisión ${sortIcon('fecha2')}</th>
+                        <th width="12%" class="sortable-cxp" data-col="fechav">Fecha Vence ${sortIcon('fechav')}</th>
+                        <th width="35%" class="sortable-cxp" data-col="concepto">Concepto / Documento ${sortIcon('concepto')}</th>
+                        <th width="12%" class="text-end sortable-cxp" data-col="monto">Monto ${sortIcon('monto')}</th>
+                        <th width="12%" class="text-end sortable-cxp" data-col="abonado">Abonado ${sortIcon('abonado')}</th>
+                        <th width="12%" class="text-end sortable-cxp" data-col="deuda">Saldo ${sortIcon('deuda')}</th>
                         <th width="7%">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
+                <tbody>${rows}</tbody>
                 <tfoot class="table-secondary">
                     <tr class="fw-bold">
                         <td colspan="3" class="text-end">TOTALES:</td>
@@ -1623,78 +1633,19 @@
 
             $('#cxp-content').html(html);
 
-            // Evento: click en encabezado para ordenar
-            $(document).off('click', '.sortable-cxp').on('click', '.sortable-cxp', function() {
-                const col = $(this).data('col');
-                if (cxpSortState.column === col) {
-                    cxpSortState.direction = cxpSortState.direction === 'asc' ? 'desc' : 'asc';
-                } else {
-                    cxpSortState.column = col;
-                    cxpSortState.direction = 'asc';
-                }
-                renderDetalleCuentas(cxpDataCache, cxpTotalsCache.monto, cxpTotalsCache.abonado, cxpTotalsCache.deuda);
-            });
-
-            // Eventos para ver detalle (igual que antes)
-            $(document).off('click', '.ver-detalle-cxp').on('click', '.ver-detalle-cxp', function() {
-                const id       = $(this).data('id');
-                const numerod  = $(this).data('numerod');
-                const concepto = $(this).data('concepto');
-                const monto    = $(this).data('monto');
-                const abonado  = $(this).data('abonado');
-                const deuda    = $(this).data('deuda');
-                const fecha2   = $(this).data('fecha2');
-                const fechav   = $(this).data('fechav');
-
-                const porcentajePagado = monto > 0 ? (abonado / monto * 100) : 0;
-                const porcentajeDeuda  = monto > 0 ? (deuda / monto * 100) : 0;
-
-                Swal.fire({
-                    title: 'Detalle de Cuenta por Pagar',
-                    html: `
-                <div class="text-start">
-                    <div class="mb-3">
-                        <p><strong><i class="ri-file-copy-line"></i> Documento:</strong> ${numerod || 'N/A'}</p>
-                        <p><strong><i class="ri-calendar-line"></i> Fecha Emisión:</strong> ${fecha2 || 'N/A'}</p>
-                        <p><strong><i class="ri-calendar-event-line"></i> Fecha Vencimiento:</strong> ${fechav || 'N/A'}</p>
-                        <p><strong><i class="ri-survey-line"></i> Concepto:</strong> ${concepto}</p>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="text-center p-2 border rounded">
-                                <small class="text-muted d-block">Monto</small>
-                                <h5 class="text-primary mb-0">$${formatNumber(monto)}</h5>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-center p-2 border rounded">
-                                <small class="text-muted d-block">Abonado</small>
-                                <h5 class="text-success mb-0">$${formatNumber(abonado)}</h5>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="text-center p-2 border rounded bg-light">
-                            <small class="text-muted d-block">Saldo Pendiente</small>
-                            <h4 class="text-danger mb-0">$${formatNumber(deuda)}</h4>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar bg-success" role="progressbar"
-                                 style="width: ${porcentajePagado}%">${porcentajePagado.toFixed(1)}%</div>
-                            <div class="progress-bar bg-danger" role="progressbar"
-                                 style="width: ${porcentajeDeuda}%">${porcentajeDeuda.toFixed(1)}%</div>
-                        </div>
-                    </div>
-                </div>
-            `,
-                    icon: 'info',
-                    confirmButtonText: 'Cerrar',
-                    width: '500px'
+            // Delegación de eventos (importante: usar delegación en document)
+            $(document)
+                .off('click.cxpSort', '.sortable-cxp')
+                .on('click.cxpSort', '.sortable-cxp', function() {
+                    const col = $(this).data('col');
+                    if (cxpSortState.column === col) {
+                        cxpSortState.direction = cxpSortState.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        cxpSortState.column = col;
+                        cxpSortState.direction = 'asc';
+                    }
+                    renderDetalleCuentas(cxpDataCache, cxpTotalsCache.monto, cxpTotalsCache.abonado, cxpTotalsCache.deuda);
                 });
-            });
         }
 
         /**
