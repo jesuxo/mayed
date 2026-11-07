@@ -1861,6 +1861,27 @@ class SaprodController extends Controller
         //
     }
 
+    public function getMarcas(Request $request)
+    {
+        $comercial = session('comercialid') ?: 1;
+        $search = $request->get('q', '');
+
+        $query = Saprod::where('comercial', $comercial)
+            ->whereNotNull('marca')
+            ->where('marca', '!=', '')
+            ->select('marca')
+            ->distinct()
+            ->orderBy('marca');
+
+        if ($search) {
+            $query->where('marca', 'LIKE', "%{$search}%");
+        }
+
+        $marcas = $query->limit(30)->pluck('marca');
+
+        return response()->json($marcas);
+    }
+
     /**
      * Obtener datos del producto para edición rápida
      */
