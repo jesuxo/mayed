@@ -125,8 +125,23 @@
                             <div class="col-lg-6">
                                 <div class="mb-3">
                                     <label class="form-label" for="marca">Marca</label>
-                                    <input type="text" class="form-control" id="marca" name="marca"  maxlength="20"
-                                           placeholder="Ej: POLAR" value="{{ old('marca') }}">
+                                    <div class="position-relative">
+                                        <input type="text"
+                                               class="form-control"
+                                               id="marca"
+                                               name="marca"
+                                               value=""
+                                               placeholder="Escribe para buscar marcas..."
+                                               autocomplete="off">
+                                        <div id="marca-sugerencias" class="list-group position-absolute w-100"
+                                             style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;
+                        background: white; border: 1px solid #ddd; border-radius: 0 0 4px 4px;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-search"></i> Escribe y selecciona una marca existente
+                                    </small>
                                 </div>
                             </div>
                             <div class="col-lg-6">
@@ -200,6 +215,195 @@
 @endsection
 @section('scripts')
     <script>
+        // ============================================
+        // BÚSQUEDA DE MARCAS
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputMarca = document.getElementById('marca');
+            const sugerenciasContainer = document.getElementById('marca-sugerencias');
+
+            let timeoutId = null;
+            let marcasCache = [];
+            let selectedIndex = -1;
+            let isNavigating = false;
+
+            function mostrarSugerencias(marcas, query) {
+                sugerenciasContainer.innerHTML = '';
+                selectedIndex = -1;
+
+                if (!marcas || marcas.length === 0) {
+                    if (query && query.length > 0) {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'list-group-item list-group-item-action text-success';
+                        item.innerHTML = `<i class="bi bi-plus-circle"></i> Crear "${query}"`;
+                        item.addEventListener('click', function() {
+                            inputMarca.value = query;
+                            ocultarSugerencias();
+                        });
+                        sugerenciasContainer.appendChild(item);
+                        sugerenciasContainer.style.display = 'block';
+                    } else {
+                        sugerenciasContainer.style.display = 'none';
+                    }
+                    return;
+                }
+
+                marcas.forEach(function(marca, index) {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.textContent = marca;
+                    item.dataset.index = index;
+
+                    if (query && query.length > 0) {
+                        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                        item.innerHTML = marca.replace(regex, '<strong style="color: #007bff;">$1</strong>');
+                    }
+
+                    item.addEventListener('mouseenter', function() {
+                        selectedIndex = parseInt(this.dataset.index);
+                        actualizarSeleccion();
+                    });
+
+                    item.addEventListener('click', function() {
+                        inputMarca.value = marca;
+                        ocultarSugerencias();
+                        inputMarca.focus();
+                    });
+
+                    sugerenciasContainer.appendChild(item);
+                });
+
+                sugerenciasContainer.style.display = 'block';
+            }
+
+            function ocultarSugerencias() {
+                sugerenciasContainer.style.display = 'none';
+                selectedIndex = -1;
+                isNavigating = false;
+            }
+
+            function actualizarSeleccion() {
+                const items = sugerenciasContainer.querySelectorAll('.list-group-item-action');
+                items.forEach(function(item, index) {
+                    if (index === selectedIndex) {
+                        item.classList.add('active');
+                        item.style.backgroundColor = '#e8f0fe';
+                        item.style.borderColor = '#007bff';
+                        item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    } else {
+                        item.classList.remove('active');
+                        item.style.backgroundColor = '';
+                        item.style.borderColor = '';
+                    }
+                });
+            }
+
+            inputMarca.addEventListener('input', function() {
+                const query = this.value.trim();
+
+                clearTimeout(timeoutId);
+
+                if (query.length === 0) {
+                    ocultarSugerencias();
+                    return;
+                }
+
+                if (query.length < 1) {
+                    sugerenciasContainer.style.display = 'none';
+                    return;
+                }
+
+                const coincidencias = marcasCache.filter(function(marca) {
+                    return marca.toLowerCase().includes(query.toLowerCase());
+                });
+
+                if (coincidencias.length > 0 && coincidencias.length <= 10) {
+                    mostrarSugerencias(coincidencias, query);
+                    return;
+                }
+
+                timeoutId = setTimeout(function() {
+                    fetch(`{{ route('saprod.marcas') }}?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            marcasCache = data;
+                            mostrarSugerencias(data, query);
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                }, 300);
+            });
+
+            inputMarca.addEventListener('keydown', function(e) {
+                const items = sugerenciasContainer.querySelectorAll('.list-group-item-action');
+
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    isNavigating = true;
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    actualizarSeleccion();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    isNavigating = true;
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    actualizarSeleccion();
+                } else if (e.key === 'Enter') {
+                    if (selectedIndex >= 0 && selectedIndex < items.length) {
+                        e.preventDefault();
+                        const item = items[selectedIndex];
+                        const texto = item.textContent.trim();
+                        const valor = texto.replace('✚ Crear', '').trim();
+                        inputMarca.value = valor || texto;
+                        ocultarSugerencias();
+                        inputMarca.focus();
+                    }
+                } else if (e.key === 'Escape') {
+                    ocultarSugerencias();
+                    inputMarca.blur();
+                }
+            });
+
+            inputMarca.addEventListener('blur', function() {
+                setTimeout(function() {
+                    ocultarSugerencias();
+                }, 200);
+            });
+
+            inputMarca.addEventListener('focus', function() {
+                const query = this.value.trim();
+                if (query.length >= 2) {
+                    this.dispatchEvent(new Event('input'));
+                } else {
+                    if (marcasCache.length === 0) {
+                        fetch(`{{ route('saprod.marcas') }}?q=`)
+                            .then(response => response.json())
+                            .then(data => {
+                                marcasCache = data;
+                                if (data.length > 0) {
+                                    mostrarSugerencias(data.slice(0, 10), '');
+                                }
+                            });
+                    } else {
+                        mostrarSugerencias(marcasCache.slice(0, 10), '');
+                    }
+                }
+            });
+
+            fetch(`{{ route('saprod.marcas') }}?q=`)
+                .then(response => response.json())
+                .then(data => {
+                    marcasCache = data;
+                })
+                .catch(error => {
+                    console.error('Error cargando marcas:', error);
+                });
+        });
 
         function verUltimoProd(codinst) {
             $('#invalidcodprod').html('C&oacute;digo ');
