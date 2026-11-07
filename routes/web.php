@@ -333,6 +333,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('productos', SaprodController::class);
     Route::controller(SaprodController::class)->group(function () {
+        Route::get('/saprod/marcas', [SaprodController::class, 'getMarcas'])->name('saprod.marcas');
         Route::post('saprod/listprodubiccompany', 'listprodubiccompany')->name('saprod.listprodubiccompany');
         Route::get('saprod/json', 'json');
         Route::match(['get','post'],'sugerir-transferencias', [SaprodController::class, 'sugerirTransferencias'])->name('sugerir-transferencias');
