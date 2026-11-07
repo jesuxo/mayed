@@ -275,13 +275,56 @@ class SaprodController extends Controller
 
     }
 
-    public function saprodexport($codalte)
+    public function saprodexport($codalte, Request $request)
     {
-        $file = Excel::download(new SaprodExport($codalte), 'productos.xlsx');
+        $fksucursal = $request->input('fksucursal');
+        $nombre     = 'productos';
 
-        return $file;
+        if ($fksucursal) {
+            $sucursal = Sasucursal::find($fksucursal);
+            if ($sucursal) {
+                $nombre .= '_' . preg_replace('/[^A-Za-z0-9]/', '_', str_replace('SARA', '', $sucursal->descrip));
+            }
+        }
+
+        $nombre .= '_' . date('Y-m-d') . '.xlsx';
+
+        return Excel::download(new SaprodExport($codalte, $fksucursal), $nombre);
     }
 
+    /**
+     * Devuelve las sucursales con conteo de productos/existencias
+     * para una instancia (codalte). Usado por el modal de descarga.
+     */
+    public function sucursalesConExistencia($codalte)
+    {
+        $comercial = session('comercialid') ?: 1;
+        $len       = strlen($codalte);
+
+        $sucursales = Sasucursal::where('fk_comercial', $comercial)
+            ->orderBy('descrip')
+            ->get()
+            ->map(function ($suc) use ($codalte, $len, $comercial) {
+                $data = \DB::table('saprod')
+                    ->join('sainsta', 'sainsta.codinst', '=', 'saprod.codinst')
+                    ->join('saexis', 'saexis.codprod', '=', 'saprod.codprod')
+                    ->where('saprod.comercial', $comercial)
+                    ->whereRaw("LEFT(sainsta.codalte, ?) = ?", [$len, $codalte])
+                    ->where('saexis.fk_sucursal', $suc->id)
+                    ->where('saexis.existen', '>', 0)
+                    ->selectRaw('COUNT(DISTINCT saprod.codprod) as productos, SUM(saexis.existen) as total')
+                    ->first();
+
+                return [
+                    'id'        => $suc->id,
+                    'descrip'   => str_replace('SARA', '', $suc->descrip),
+                    'productos' => (int) ($data->productos ?? 0),
+                    'total'     => (int) ($data->total ?? 0),
+                ];
+            });
+
+        return response()->json($sucursales);
+    }
 
     public function updateSaprodData(Request $request)
     {
@@ -1593,16 +1636,16 @@ class SaprodController extends Controller
 
         try {
 
-            $comercial = session('comercialid') ;
+            $comercialid = session('comercialid') ;
 
-            $comercial    = Sacomercial::find($comercial);
+            $comercial    = Sacomercial::find($comercialid);
             $match        = $comercial->match;
 
             $comerciales = Sacomercial::where('match',$match)->get();
 
-            foreach ($comerciales as $comercial){
+            foreach ($comerciales as $comerciali){
                 $existe = Saprod::where('codprod', $request->codprod)
-                                  ->where('comercial', $comercial)
+                                  ->where('comercial', $comerciali->id)
                                   ->exists();
 
                 if(!$existe){
@@ -1620,7 +1663,7 @@ class SaprodController extends Controller
                         $newprod->costod2 = $request->costod3;
                         $newprod->costod3 = $request->costod3;
                     }
-                    $newprod->comercial = $comercial->id;
+                    $newprod->comercial = $comerciali->id;
                     $newprod->save();
                 }
             }

@@ -3,21 +3,25 @@
 namespace App\Exports;
 
 use App\Models\Saprod;
+use App\Models\Sasucursal;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+
 class SaprodExport implements FromCollection, WithHeadings
 {
     private $codalte;
+    private $fksucursal;
 
-    // Constructor que acepta el parámetro del departamento
-    public function __construct($codalte = null)
+    // Constructor acepta codalte y opcionalmente fksucursal
+    public function __construct($codalte = null, $fksucursal = null)
     {
-        $this->codalte = $codalte;
+        $this->codalte    = $codalte;
+        $this->fksucursal = $fksucursal;
     }
 
     public function headings(): array
     {
-        return [
+        $headings = [
             'codprod',
             'descrip',
             'precio1',
@@ -28,21 +32,56 @@ class SaprodExport implements FromCollection, WithHeadings
             'referencia',
             'marca',
             'existencia',
-            'codinst'
+            'codinst',
         ];
+
+        // Si se filtró por sucursal, indicamos cuál es
+        if ($this->fksucursal) {
+            $sucursal = Sasucursal::find($this->fksucursal);
+            $headings[] = 'sucursal';
+        }
+
+        return $headings;
     }
 
     public function collection()
     {
-        $comercial  = session('comercialid') ;
+        $comercial  = session('comercialid');
         $codalte    = $this->codalte;
+        $fksucursal = $this->fksucursal;
 
-        return Saprod::selectRaw("
-        codprod,descrip,costod as precio1, costod2 as precio2, costod3 as precio3, preciod as costo, preciodpro as costopro,
-        refere as referencia, marca,  existen, codinst  ")
-            ->where("comercial",$comercial)
-            ->whereRaw(" codinst in (select codinst from sainsta where codalte like '$codalte%')")
-            ->orderBy('marca')->get();
+        $query = Saprod::selectRaw("
+            codprod, descrip,
+            costod as precio1, costod2 as precio2, costod3 as precio3,
+            preciod as costo, preciodpro as costopro,
+            refere as referencia, marca, existen, codinst
+        ")
+            ->where("comercial", $comercial)
+            ->whereRaw("codinst in (select codinst from sainsta where codalte like ?)", [$codalte . '%']);
 
+        // Si hay sucursal, filtramos solo productos con existencia > 0 ahí
+        if ($fksucursal) {
+            $query->whereExists(function ($q) use ($fksucursal) {
+                $q->select(\DB::raw(1))
+                    ->from('saexis')
+                    ->whereColumn('saexis.codprod', 'saprod.codprod')
+                    ->where('saexis.fk_sucursal', $fksucursal)
+                    ->where('saexis.existen', '>', 0);
+            });
+        }
+
+        $productos = $query->orderBy('marca')->get();
+
+        // Si se filtró por sucursal, agregamos el nombre al final de cada fila
+        if ($fksucursal) {
+            $sucursal    = Sasucursal::find($fksucursal);
+            $nombreSuc   = $sucursal ? str_replace('SARA', '', $sucursal->descrip) : '';
+
+            $productos->each(function ($p) use ($nombreSuc) {
+                $p->sucursal = $nombreSuc;
+            });
+        }
+
+        return $productos;
     }
 }

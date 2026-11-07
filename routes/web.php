@@ -233,6 +233,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/productos/importarcrear', [SaprodController::class, 'importarcrear'])->name('productos.importarcrear');
     Route::post('saprod/update', [SaprodController::class, 'updateSaprodData']);
     Route::get('saprod/export/{codalte}', [SaprodController::class, 'saprodexport']);
+    Route::get('saprod/sucursales-existencia/{codalte}', [SaprodController::class, 'sucursalesConExistencia'])
+        ->name('saprod.sucursales-existencia');
     Route::post('/productos/validar-codigo', [SaprodController::class, 'validarCodigo'])->name('productos.validar-codigo');
 
     Route::resource('vendedores', SavendController::class);

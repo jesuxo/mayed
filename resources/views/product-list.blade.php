@@ -109,7 +109,11 @@
                                     <li>
                                         <div href="#" class="d-flex align-items-center">
                                             <div class="flex-grow-1">
-                                                <a href="/saprod/export/{{$instancia->codalte}}">
+                                                <a href="javascript:;"
+                                                   class="btn-descargar-instancia"
+                                                   data-codalte="{{ $instancia->codalte }}"
+                                                   data-nombre="{{ $instancia->descrip }}"
+                                                   title="Descargar productos por sucursal">
                                                     <i class="bi bi-download" style="margin-right: 10px;"></i>
                                                 </a>
                                                 <span class="mb-0 listname" style="font-size: 12px; padding-left: {{($instancia->nivel-1)*14}}px">  {{$instancia->label}}</span>
@@ -405,9 +409,125 @@
         </div>
     @endif
 
+    <!-- Modal: elegir sucursal para descarga -->
+    <div class="modal fade" id="modalDescargaSucursal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-download me-2"></i>
+                        Descargar productos: <span id="nombreInstanciaDescarga"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Selecciona una sucursal para descargar solo los productos con existencia en ella,
+                        o descarga todos los productos de la instancia.
+                    </p>
+
+                    <div id="loadingSucursales" class="text-center py-3 d-none">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 mb-0 text-muted">Cargando sucursales...</p>
+                    </div>
+
+                    <div class="table-responsive" id="tablaSucursalesDescarga">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Sucursal</th>
+                                <th class="text-center">Productos</th>
+                                <th class="text-center">Existencias</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tbodySucursalesDescarga"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-primary btn-descargar-todo">
+                            <i class="bi bi-file-earmark-excel me-1"></i>
+                            Descargar todos (sin filtro de sucursal)
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 @endsection
 @section('scripts')
     <script>
+        (function() {
+            let codalteActual = '';
+            let nombreActual  = '';
+
+            // Abrir modal al hacer clic en el ícono de descarga
+            $(document).on('click', '.btn-descargar-instancia', function() {
+                codalteActual = $(this).data('codalte');
+                nombreActual  = $(this).data('nombre');
+
+                $('#nombreInstanciaDescarga').text(nombreActual);
+                $('#tbodySucursalesDescarga').html('');
+                $('#tablaSucursalesDescarga').addClass('d-none');
+                $('#loadingSucursales').removeClass('d-none');
+
+                $('#modalDescargaSucursal').modal('show');
+
+                $.get('{{ url("saprod/sucursales-existencia") }}/' + encodeURIComponent(codalteActual), function(data) {
+                    $('#loadingSucursales').addClass('d-none');
+                    $('#tablaSucursalesDescarga').removeClass('d-none');
+
+                    let filas = '';
+                    if (!data.length) {
+                        filas = '<tr><td colspan="4" class="text-center text-muted">No hay sucursales</td></tr>';
+                    } else {
+                        data.forEach(function(s) {
+                            filas += `
+                        <tr>
+                            <td>${s.descrip}</td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark">${s.productos}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success-subtle text-success">${s.total}</span>
+                            </td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-soft-success btn-descargar-sucursal"
+                                   href="{{ url('saprod/export') }}/${encodeURIComponent(codalteActual)}?fksucursal=${s.id}">
+                                    <i class="bi bi-download me-1"></i> Descargar
+                                </a>
+                            </td>
+                        </tr>`;
+                        });
+                    }
+                    $('#tbodySucursalesDescarga').html(filas);
+                }).fail(function() {
+                    $('#loadingSucursales').addClass('d-none');
+                    $('#tablaSucursalesDescarga').removeClass('d-none');
+                    $('#tbodySucursalesDescarga').html(
+                        '<tr><td colspan="4" class="text-center text-danger">Error al cargar sucursales</td></tr>'
+                    );
+                });
+            });
+
+            // Descargar todos (sin filtro)
+            $(document).on('click', '.btn-descargar-todo', function() {
+                window.location.href = '{{ url('saprod/export') }}/' + encodeURIComponent(codalteActual);
+            });
+
+            // Cerrar modal al descargar una sucursal
+            $(document).on('click', '.btn-descargar-sucursal', function() {
+                setTimeout(function() {
+                    $('#modalDescargaSucursal').modal('hide');
+                }, 800);
+            });
+        })();
+
         // Función para buscar productos en tiempo real
         let timeoutId;
 
