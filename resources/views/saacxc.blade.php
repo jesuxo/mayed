@@ -328,7 +328,7 @@
                                     $primero->es_grupo            = $grupo->count() > 1;
                                     return $primero;
                                 })
-                                ->take(10)
+                                ->take(50)
                                 ->values();
 
                         @endphp
