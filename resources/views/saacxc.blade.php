@@ -328,7 +328,7 @@
                                     $primero->es_grupo            = $grupo->count() > 1;
                                     return $primero;
                                 })
-                                ->take(50)
+                                ->take(500)
                                 ->values();
 
                         @endphp
@@ -383,11 +383,7 @@
                                     </div>
                                 @endforeach
                             </div>
-                            @if(count($movimientosRecientes) >= 5)
-                                <div class="card-footer bg-transparent text-center py-2">
-                                    <small class="text-muted">Mostrando últimos 10 movimientos</small>
-                                </div>
-                            @endif
+
                         @else
                             <div class="text-center py-4 text-muted">
                                 <i class="bi bi-inbox fs-4"></i>
