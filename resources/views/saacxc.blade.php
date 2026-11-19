@@ -314,7 +314,7 @@
                             $registrosRecientes = \App\Models\Saacxc::with(['cliente'])
                                 ->whereIn('tipocxc', [98, 99])
                                 ->orderBy('created_at', 'desc')
-                                ->limit(50) // traer más para agrupar
+                                ->limit(500) // traer más para agrupar
                                 ->get();
 
                             $movimientosRecientes = $registrosRecientes
